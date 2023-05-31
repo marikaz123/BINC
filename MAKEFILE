@@ -1,0 +1,17 @@
+# --------------------
+# Build BINC.EXE
+# (c) 1995 'marikaz'
+# --------------------
+
+BINC.EXE: MAIN.OBJ B2D.OBJ GP.OBJ
+        tlink /x MAIN.OBJ+B2D.OBJ+GP.OBJ,BINC.EXE
+
+MAIN.OBJ: MAIN.ASM
+        tasm /m3 MAIN.ASM
+B2D.OBJ: B2D.ASM
+        tasm /m3 B2D.ASM
+GP.OBJ: GP.ASM
+        tasm /m3 GP.ASM
+
+CLEAN:
+        del *.OBJ
