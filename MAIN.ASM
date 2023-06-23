@@ -1,23 +1,24 @@
 ;-----------------------------------------------------------------
-;    BINC  ver. 1.5
-;    Convert binary file to assembly include file.
+; BINC  ver. 1.5 ** MOD0623 ** (c)1995 'marikaz'
+; Convert binary file to assembly include file.
+;   +++
+; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do zrodla
+; w asemblerze.
 ;
-;                                              MAIN.ASM: rev. 1.6
-; (c) 1995 'marikaz'                                MOD: 05/2023
-;-----------------------------------------------------------------
+; -- NOTES: ------------------------------------------------------
 ; Glowna czesc programu. Czyta i zapisuje pliki, obsluguje bledy,
 ; podaje komunikaty, wola procedury itd.
 ;-----------------------------------------------------------------
 
-code segment public 'code'
-assume cs:code,ds:data
-extrn bin2db:proc,getParam:proc
+code SEGMENT PUBLIC 'code'
+ASSUME cs:code,ds:data
+EXTRN bin2db:PROC,getParam:PROC
 
 start:
           call getParam   ;GP.ASM
           mov ax,data
           mov ds,ax
-          cmp bx,1
+          cmp bx,1        ;nazwa pliku nielegalna lub nie podano
           jne @@1
           jmp  prnInfo
      @@1:
@@ -37,7 +38,7 @@ getKey:
           cmp al,0dh     ;enter (domyslnie No)
           je abort
           mov ah,al      ;w ah kopia do sprawdzen
-          or al,100000b  ;na mala
+          or al,100000b  ;zamien na mala
           cmp al,'n'
           je abort
           or ah,100000b
@@ -52,7 +53,7 @@ continue:
 
           mov ah,3fh
           lea dx,ssf
-          mov cx,0fe00h            ;max. bufor
+          mov cx,0f000h            ;max. bufor
           int 21h
           jc  fileErr
           cmp ax,0                 ;plik 0b?
@@ -91,7 +92,7 @@ continue:
           jc  fileErr
 
           mov bx,SPaddr
-          mov byte ptr [bx+4],20h ;wstaw spacje (dla CP852)
+          mov BYTE PTR [bx+4],20h ;wstaw spacje (dla CP852: DOS 6.22)
           mov dx,OFFSET fileOut
           mov ah,9
           int 21h
@@ -99,7 +100,6 @@ continue:
 exit:
           mov ah,4ch
           int 21h
-
 abort:
           mov ah,9
           mov dx,OFFSET intProc
@@ -110,6 +110,7 @@ prnInfo:
           mov dx,OFFSET info
           mov ah,9
           int 21h
+          mov al,0
           jmp exit
 fileErr:
           mov dx,OFFSET errtxt
@@ -128,17 +129,18 @@ ovInfo:
           int 21h
           mov al,-1
           jmp exit
-code      ends
+code      ENDS
 
-data segment public 'data'
-public ssf,fileIn,fileOut,SPaddr
+data SEGMENT PUBLIC 'data'
+PUBLIC ssf,fileIn,fileOut,SPaddr
 
-info      DB " BINC ver. 1.5 * (c)1995 'marikaz'",13,10
+info      DB 13,10," BINC ver. 2.0 :: (c)1995 'marikaz'",13,10
           DB ' Convert binary file to assembly include file.',13,10,13,10
-          DB ' Usage: binc.exe <filename.ext>',13,10,13,10
-          DB ' - The source file must exist on the disk.',13,10
-          DB ' - The source file name must match the MS-DOS file system.',13,10
-          DB ' - Access to the source file can not be denied.',13,10,'$'
+          DB ' Usage:',13,10,'        binc.exe <FileIN.ext> [FileOUT.ext]',13,10,13,10
+          DB " If no output filename is given, BINC defaults to the input",13,10
+          DB " filename and '.INC' extension.",13,10,13,10
+          DB ' - The input filename must match the MS-DOS file system.',13,10
+          DB ' - Access to the input file and writting to disk must be allowed.',13,10,'$'
 errTxt    DB 'File operation error.$'
 ovTxt     DB 'The destination file is too large.$'
 txt0b     DB 'The source file is empty.$'
@@ -147,15 +149,15 @@ intProc   DB "Discontinued at user's request.$"
 SPaddr    DW ?
 fileIn    DB 12 DUP (0),0
 fileOut   DB 12 DUP (0),0,6 DUP (20h)
-ssf       DB 0FE00h DUP (?)
-data ends
+ssf       DB 0f000h DUP (?)
+data ENDS
 
-sstk segment stack 'stack'
-          DW 32 DUP (?)
-sstk ends
+sstk SEGMENT STACK 'stack'
+     DW 32 DUP (?)
+sstk ENDS
 
-file segment public 'file'
-public sdf
-sdf label word
-file ends
+file SEGMENT PUBLIC 'file'
+PUBLIC sdf
+sdf LABEL WORD
+file ENDS
      END start
