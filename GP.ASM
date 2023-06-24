@@ -22,7 +22,6 @@ getParam        PROC
                 cmp BYTE PTR [si],0
                 je  setIF
                 inc si
-
 readCMDL:
                 lodsb
                 cmp al,0dh
@@ -34,11 +33,10 @@ readCMDL:
                 cmp al,'/'
                 je setIF
                 cmp al,126
-                je setIF
+                ja setIF
 
                 dec si          ;korekta
                 mov cx,12       ;max dl. nazwy
-
                 ;wybierz
                 cmp es:[fileIn],0
                 je getFileNameIn
@@ -47,14 +45,12 @@ readCMDL:
 setIF:          ;ustaw flage dla bledow w linii parametrow
                 mov bx,1        ;ma byc w BX
                 ret
-
                 ;zaladuj index w zaleznosci od pliku
 getFileNameIn:
                 lea di,es:[fileIn]
                 jmp getFileName
 getFileNameOut:
                 lea di,es:[fileOut]
-
 getFileName:
                 cmp BYTE PTR [si],0dh       ;tu tylko plik
                 je readCMDL                 ;reszta w readCMDL
@@ -76,12 +72,9 @@ getFileName:
                 cmp BYTE PTR [si],0dh
                 je readCMDL              ;reszte obsluzy readCMDL
                 jmp setIF
-
 endCMDL:
                 lea di,es:[fileIn]
                 lea bx,es:[fileOut]
-                cmp BYTE PTR es:[di],0   ;pusta CMDL
-                je setIF
                 cmp BYTE PTR es:[bx],0
                 jne bothFiles
 
@@ -96,24 +89,21 @@ movFN:
                 inc di
                 inc bx
                 jmp movFN
-
 addExt:
                 mov es:[SPaddr],bx
                 mov es:[bx],'i.'    ;rozszerzenie
                 mov es:[bx+2],'cn'
+                jmp done
+bothFiles:      ;sa podane oba pliki
+                add bx,12
+                sub bx,cx      ;cx=12-(dlugosc_nazwy_pliku)
+                inc bx         ;korekta bo TU po nazwie musi zostac 0 z buf.
+                sub bx,5       ;
 done:                               ;[bx+4] = 0 z buf.
                 mov es:[bx+5],'od'  ;Napis 'done.'
                 mov es:[bx+7],'en'
                 mov es:[bx+9],'$.'
                 ret
-
-bothFiles:      ;sa podane oba pliki
-                add bx,12
-                sub bx,cx      ;cx=12-(dlugosc_nazwy_pliku)
-                inc bx         ;korekta bo TU po nazwie musi zostac 0 z buf.
-                sub bx,5       ; ,,
-                jmp done       ;zeby sie nie powtarzac
-
 getParam        ENDP
 code ENDS
 
