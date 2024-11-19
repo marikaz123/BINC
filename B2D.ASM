@@ -2,7 +2,6 @@
 ; * Bin2db:PROC * REV. C *                                         BINC v2.2
 ;----------------------------------------------------------------------------
 
-
 _TEXT SEGMENT WORD PUBLIC 'CODE'
       PUBLIC Bin2db
       ASSUME cs:_TEXT,ds:_DATA,es:_BSS
@@ -15,8 +14,8 @@ Bin2db    PROC
           mov di,OFFSET sdf
           mov si,OFFSET aName
 
-          cmp BYTE PTR [si],0  ;sprawdz czy jest nazawa
-          je skpName           ;nie ma
+          cmp BYTE PTR [si],0
+          je skpName
           cmp BYTE PTR [si],1  ;nazwa = nazwa pliku
           je mFName
 mvName:
@@ -39,7 +38,7 @@ mFName:
 skpName:
            mov si,OFFSET ssf
 
-nLine:     ;Glowna petla
+nLine:
            xor dx,dx       ;licznik pomocniczy dla linii
            mov ax,'BD'
            stosw
@@ -63,15 +62,13 @@ do:
            stosb
            loop do
     eLine:
-           cmp cx,1
-           je  eFile
-           cmp di,0ffa0h ;(1) ??
+           cmp di,0ffa0h
            ja  eFile
            mov ax,0a0dh
            stosw
            loop nLine
 eFile:
-           mov ax,0a0dh ;dodaj 'ENTER' na koncu
+           mov ax,0a0dh
            stosw
            mov cx,di    ;CX= ilosc zapisanych do bufora bajtow
            ret

@@ -1,17 +1,15 @@
 ;----------------------------------------------------------------------------
-; BINC v2.2 * MOD2310 * (c)1995 'marikaz'
+; BINC v2.2.2 * MOD1124 * (c)1995 'marikaz'
 ;  ++++
 ; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego
 ; programu w asemblerze.
 ;----------------------------------------------------------------------------
-
 
 _TEXT SEGMENT WORD PUBLIC 'CODE'
       ASSUME cs:_TEXT,ds:_DATA
       EXTRN bin2db:PROC,getParam:PROC
 
 JUMPS
-
 start:
           call GetParam   ;GP.ASM
           mov ax,_DATA
@@ -49,23 +47,21 @@ nsfn:
 
           mov ah,3fh
           lea dx,ssf
-          mov cx,0f000h            ;max. bufor
+          mov cx,0f000h
           int 21h
           jc  fileErr
-          cmp ax,0                 ;plik 0b?
+          cmp ax,0
           je  err0b
-          mov cx,ax                ;ilosc odczytanych bajtow
+          mov cx,ax
 
           mov ah,3eh
           int 21h
-          jc  fileErr
 
-          call Bin2db              ;B2D.ASM
-                                   ;w cx zwraca ilosc bajtow pliku docelowego
-          cmp cx,0ffa0h ;(1)
+          call Bin2db              ;B2D.ASM w cx=wielkosc pliku.
+          cmp cx,0ffa0h
           ja  ovInfo
 
-          push cx                  ;zachowaj cx
+          push cx
           mov ah,3ch
           mov dx,OFFSET fileOut
           mov cx,0
@@ -85,7 +81,6 @@ nsfn:
 
           mov ah,3eh
           int 21h
-          jc  fileErr
 
           mov bx,SPaddr
           mov BYTE PTR [bx],20h
@@ -133,7 +128,7 @@ PUBLIC ssf,fileIn,fileOut,SPaddr,aName
 
 info      DB "BINC v2.2 * (c)1995 'marikaz'",13,10
           DB 'Convert binary file to assembly include file.',13,10,13,10
-          DB '  BINC.EXE [/N[:][name]] <InFile.ext> [OutFile.ext]',13,10,13,10
+          DB '  BINC.EXE <InFile.ext> [OutFile.ext] [/N[:][name]]',13,10,13,10
           DB '/N[:]name  Array name, max. 15 characters.',13,10
           DB '/N[:]      Set the input filename without extension as the array name.',13,10,13,10
           DB 'If no destination filename is provided, BINC will default to the input filename',13,10

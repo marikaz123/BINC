@@ -2,7 +2,6 @@
 ; * GetParam:PROC * REV. C *                                       BINC v2.2
 ;----------------------------------------------------------------------------
 
-
 _TEXT SEGMENT WORD PUBLIC 'CODE'
       ASSUME cs:_TEXT,es:_DATA
       PUBLIC getParam
@@ -38,7 +37,7 @@ rCMDL:
                 cmp es:[fileOut],0
                 je getFNO
 setIF:
-                mov bx,1        ;flaga, ma byc w BX
+                mov bx,1 ;znacznik, ma byc w BX
                 ret
 chkSw:
                 mov cx,15
@@ -72,7 +71,7 @@ getFNO:
 getFN:          ;wszystko <= 20h i >= 7eh do rCMDL
                 cmp BYTE PTR [si],20h
                 jbe rCMDL
-                cmp BYTE PTR [si],7eh    ;??
+                cmp BYTE PTR [si],7eh
                 ja rCMDL
                 movsb
                 loop getFN
@@ -84,6 +83,7 @@ eCMDL:
                 lea bx,es:[fileOut]
                 cmp BYTE PTR es:[bx],0
                 jne bothFiles
+                ;jeden plik:
 movFN:
                 mov al,es:[di]
                 cmp al,'.'
@@ -101,17 +101,17 @@ addExt:
                 add SPaddr,4        ;korekta
                 jmp done
 
-bothFiles:
+bothFiles:      ;sa podane oba pliki
                 cmp BYTE PTR es:[bx],0
                 je eofn
                 inc bx
                 jmp bothFiles
           eofn:
                 mov es:[SPaddr],bx
-                inc bx         ;korekta bo TU po nazwie musi zostac 0 z buf.
-                sub bx,5       ;
-done:                               ;[bx+4] = 0 z buf.
-                mov es:[bx+5],'od'  ;
+                inc bx         ;po nazwie musi zostac 0 z buf.
+                sub bx,5
+done:
+                mov es:[bx+5],'od'
                 mov es:[bx+7],'en'
                 mov es:[bx+9],'$.'
                 ret
