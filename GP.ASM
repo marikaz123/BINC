@@ -1,5 +1,5 @@
 ;----------------------------------------------------------------------------
-; * GetParam:PROC * REV. C *                                       BINC v2.2
+; * GetParam:PROC * REV. C1 *                                       BINC v2.2
 ;----------------------------------------------------------------------------
 
 _TEXT SEGMENT WORD PUBLIC 'CODE'
@@ -14,7 +14,7 @@ GetParam        PROC
                 cld
                 mov si,80h
                 cmp BYTE PTR [si],0
-                je  setIF
+                je  errFl
                 inc si
 rCMDL:
                 lodsb
@@ -27,27 +27,54 @@ rCMDL:
                 cmp al,'/'
                 je chkSw
                 cmp al,7eh
-                ja setIF
+                ja errFl
+                dec si  ;korekta po lodsb
 
-                dec si          ;korekta
-                mov cx,12       ;max dl. nazwy
-                ;wybierz
-                cmp es:[fileIn],0
-                je getFNI
-                cmp es:[fileOut],0
-                je getFNO
-setIF:
-                mov bx,1 ;znacznik, ma byc w BX
+                cmp es:[fileIn],0   ;inFile
+                jne cOut
+                lea di,es:[fileIn]
+                jmp getFN
+         cOut:
+                cmp es:[fileOut],0  ;outFile
+                jne errFl
+                lea di,es:[fileOut]
+getFN:
+                mov cx,8 +1  ;prawidlowa nazwa konczy sie wyskokiem z loop
+          nme:
+                cmp BYTE PTR [si],20h
+                jbe rCMDL
+                cmp BYTE PTR [si],'.'
+                je dot
+                cmp BYTE PTR [si],7eh
+                ja errFl
+                movsb
+                loop getFN
+                jmp errFl
+          dot:
+                movsb
+                mov cx,3 +1  ;jak przy nazwie
+          ext:
+                cmp BYTE PTR [si],20h
+                jbe rCMDL
+                cmp BYTE PTR [si],7eh
+                ja errFl
+                movsb
+                loop ext
+                jmp errFl
+
+errFl:
+                mov bx,1 ;ma byc w BX
                 ret
+
 chkSw:
-                mov cx,15
+                mov cx,15 +1        ;tylko przez skok
                 lea di,es:[aName]
                 lodsb
                 or al,100000b
                 cmp al,'n'
-                jne setIF
-                cmp BYTE PTR es:[di],0 ;[di]
-                jne setIF
+                jne errFl
+                cmp BYTE PTR es:[di],0
+                jne errFl
                 mov BYTE PTR es:[di],1 ;[di] podano '/n'
                 cmp BYTE PTR [si],':'
                 jne getAN
@@ -59,30 +86,13 @@ chkSw:
                 ja rCMDL
                 movsb
                 loop getAN
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                jmp setIF
-                ;zaladuj index w zaleznosci od pliku
-getFNI:
-                lea di,es:[fileIn]
-                jmp getFN
-getFNO:
-                lea di,es:[fileOut]
-getFN:          ;wszystko <= 20h i >= 7eh do rCMDL
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                cmp BYTE PTR [si],7eh
-                ja rCMDL
-                movsb
-                loop getFN
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                jmp setIF
+                jmp errFl
+
 eCMDL:
                 lea di,es:[fileIn]
                 lea bx,es:[fileOut]
                 cmp BYTE PTR es:[bx],0
-                jne bothFiles
+                jne twoFiles
                 ;jeden plik:
 movFN:
                 mov al,es:[di]
@@ -101,15 +111,15 @@ addExt:
                 add SPaddr,4        ;korekta
                 jmp done
 
-bothFiles:      ;sa podane oba pliki
+twoFiles:       ;sa podane oba pliki
                 cmp BYTE PTR es:[bx],0
                 je eofn
                 inc bx
-                jmp bothFiles
+                jmp twoFiles
           eofn:
                 mov es:[SPaddr],bx
                 inc bx         ;po nazwie musi zostac 0 z buf.
-                sub bx,5
+                sub bx,5       ;korekta jak 2 pliki!
 done:
                 mov es:[bx+5],'od'
                 mov es:[bx+7],'en'

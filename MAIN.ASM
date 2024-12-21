@@ -4,6 +4,9 @@
 ; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego
 ; programu w asemblerze.
 ;----------------------------------------------------------------------------
+; Glowna czesc programu. Czyta i zapisuje pliki, obsluguje bledy, podaje
+; komunikaty, wola procedury itd.
+;----------------------------------------------------------------------------
 
 _TEXT SEGMENT WORD PUBLIC 'CODE'
       ASSUME cs:_TEXT,ds:_DATA
@@ -15,26 +18,26 @@ start:
           mov ax,_DATA
           mov ds,ax
           cmp bx,1
-          je  prnInfo
-          mov ah,4eh
+        je  prnInfo
+          mov ah,4eh ;czy na dysku?
           mov cx,1
           lea dx,fileOut
           int 21h
           jc nsfn
-          lea dx,existTxt
+        lea dx,existTxt
           mov ah,9
           int 21h
 getKey:
           mov ah,7
           int 21h
           cmp al,1bh
-          je abort
+          je brk
           cmp al,0dh
-          je abort
+          je brk
           mov ah,al      ;w ah kopia do sprawdzen
           or al,100000b
           cmp al,'n'
-          je abort
+          je brk
           or ah,100000b
           cmp ah,'y'
           jne getKey
@@ -42,15 +45,15 @@ nsfn:
           mov ax,3d00h
           lea dx,fileIn
           int 21h
-          jc  prnInfo
+          jc prnInfo
           mov bx,ax
 
           mov ah,3fh
           lea dx,ssf
-          mov cx,0f000h
+          mov cx,0f000h            ;max. bufor
           int 21h
           jc  fileErr
-          cmp ax,0
+          cmp ax,0                 ;plik 0b?
           je  err0b
           mov cx,ax
 
@@ -91,12 +94,14 @@ nsfn:
 exit:
           mov ah,4ch
           int 21h
-abort:
+
+brk:
           mov ah,9
-          mov dx,OFFSET intProc
+          mov dx,OFFSET brkTxt
           int 21h
           mov al,0
           jmp exit
+
 prnInfo:
           mov dx,OFFSET info
           mov ah,9
@@ -104,7 +109,7 @@ prnInfo:
           mov al,0
           jmp exit
 fileErr:
-          mov dx,OFFSET errtxt
+          mov dx,OFFSET foTxt
           mov ah,9
           int 21h
           jmp exit
@@ -128,18 +133,17 @@ PUBLIC ssf,fileIn,fileOut,SPaddr,aName
 
 info      DB "BINC v2.2 * (c)1995 'marikaz'",13,10
           DB 'Convert binary file to assembly include file.',13,10,13,10
-          DB '  BINC.EXE <InFile.ext> [OutFile.ext] [/N[:][name]]',13,10,13,10
+          DB '    BINC.EXE <InFile.ext> [OutFile.ext] [/N[:][name]]',13,10,13,10
           DB '/N[:]name  Array name, max. 15 characters.',13,10
           DB '/N[:]      Set the input filename without extension as the array name.',13,10,13,10
           DB 'If no destination filename is provided, BINC will default to the input filename',13,10
           DB 'with the INC extension.',13,10,'$'
-errTxt    DB 'File operation error.',13,10,'$'
+foTxt     DB 'File operation error.',13,10,'$'
 ovTxt     DB 'The target file is too large.',13,10,'$'
 txt0b     DB 'The source file is empty.',13,10,'$'
-existTxt  DB 'A file with this name already exists. Continue? [y/N]',13,10,'> $'
-intProc   DB 'Discontinued at user request.',13,10,'$'
-
-aName     DB 0,14 DUP (20h),20h
+existTxt  DB 'A file already exists. Continue? [y/N]',13,10,'> $'
+brkTxt    DB 'Discontinued at user request.',13,10,'$'
+aName     DB 0,15 DUP (20h)
 fileIn    DB 12 DUP (0),0
 fileOut   DB 12 DUP (0),0,6 DUP (20h)
 SPaddr    DW ?
