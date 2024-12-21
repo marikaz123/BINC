@@ -22,7 +22,6 @@
        InFile.ext  Nazwa pliku do konwersji (wymagana).
        OutFile.ext Nazwa dla pliku docelowego.
 
-
    Jesli nie podano nazwy dla pliku docelowego (OutFile.ext) to zostanie
    wygenerowany plik o nazwie identycznej z nazwa pliku wejsciowego
    a rozszerzenie zostanie zastapione rozszerzeniem inc. Jesli plik wejsciowy
@@ -58,7 +57,6 @@
 
        BINC /n:MojaNazwaDlaTbl plik0000.bin plik1111.inc
 
-
 2. PLIK WEJSCIOWY
 
    Plik zrodlowy moze byc dowolnym plikiem i nie ma znaczenia jaka ma
@@ -69,7 +67,6 @@
    podstawie mozna przyjac, ze plik o rozmiarze 15kB powinien dac sie
    skonwertowac, natomiast wiekszy juz niekoniecznie, chociaz nie jest
    to wykluczone.
-
 
 3. PLIK WYJSCIOWY
 
@@ -85,9 +82,7 @@
    W przypadku gdy plik docelowy bedzie wiekszy niz dopuszczalny, program
    przerwie dzialanie i wyswietli stosowny komunikat.
 
-
 4. BLEDY I KOMUNIKATY
-
 
    4.1 W przypadku bledow podczas operacji na plikach, program wyswietli
        komunikat:
@@ -131,39 +126,10 @@
 
          OutFile.inc done.
 
-
 5. KOMPATYBILNOSC
-
 
    BINC ver. 2.1 zostal przetestowany z:
 
    MS-DOS 5.0+   - VM. Wersja 1.1 pracowala na maszynie fizycznej.
    FreeDOS 1.3   - na VM.
    DOSBox 0.74-3 - Kompilacja i testy aktualnej wersji.
-
-
-6. HISTORIA WERSJI
-
-   ver. 2.2.2 (11.2024)
-   --------------------
-   (~) Poprawki niescislosci nie majacych wplywu na proces, zarowno
-       przed, jak i po wdrozeniu.
-
-   ver. 2.2.1 (10.2023)
-   --------------------
-   (~) Poprawki i optymalizacje po latach...
-
-   ver. 2.2 (05.1995)
-   ------------------
-   (+) Dodano mozliwosc podania nazwy dla tablicy lub przyjecia
-       nazwy pliku zrodlowego jako nazwe tablicy.
-
-   ver. 2.1 (04.1995)
-   ------------------
-   (+) Dodano mozliwosc podania wlasnej nazwy dla pliku docelowego.
-
-   ver. 1.1  (02.1995)
-   -------------------
-   (+) Pierwsze wydanie udostepnione kiedys we fragmentach na usenet'cie.
-
-(m)
