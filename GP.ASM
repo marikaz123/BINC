@@ -23,7 +23,6 @@ PUBLIC GetParams
        inc si
 gChar:
        lodsb
-cChar:
        cmp al,9
        je gChar
        cmp al,20h
@@ -62,11 +61,10 @@ switch:
        cmp [BYTE es:di],0
        jne @@exi0
        mov [BYTE es:di],1 ;samo /n
-       cmp [BYTE si],':'
-       jne @@nx
-       inc si
-@@nx:
        mov cx,15 +1 ;prawidlowy tylko wyskok z petli.
+       cmp [BYTE si],':'
+       jne gLab
+       inc si
 gLab:
        cmp [BYTE si],20h
        jbe gChar
