@@ -15,9 +15,9 @@
         push es
         mov ah,2fh
         int 21h
-        cmp [es:bx+1ah],0
+        cmp [WORD es:bx+1ah],0
         jne @ex
-        cmp [es:bx+1ch],0
+        cmp [WORD es:bx+1ch],0
    @ex:
         pop es
         ENDM
