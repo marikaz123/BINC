@@ -1,135 +1,208 @@
 ;----------------------------------------------------------------------------
-; * GetParam:PROC * REV. C1 *                                       BINC v2.2
+; * GetParams:PROC * REV. D *                                      BINC v2.3
+;----------------------------------------------------------------------------
+; BINC.EXE  [drive:][path]<InFile> [dirve:][path][OutFile] [/N[:][name]]
+;
+
+       IDEAL
+       MODEL SMALL
+
+CODESEG
+PUBLIC GetParams
+
+       PROC GetParams
+       LOCALS
+       push es
+       mov ax,DGROUP
+       mov es,ax
+       mov si,80h
+       cmp [BYTE si],0
+       je @@exi0  ;exit 0 = info
+       mov [es:ifSpec],0 ;jako znacznik
+       mov [es:ofSpec],0 ; /
+       inc si
+gChar:
+       lodsb
+cChar:
+       cmp al,9
+       je gChar
+       cmp al,20h
+       je gChar
+       cmp al,0dh
+       je @@exip  ;=ok  !jedyne mozliwe wyjscie bez bledu!
+       cmp al,20h
+       jb @@exi0  ;=info
+
+       cmp al,'/'
+       je switch
+       lea di,[es:ifSpec]
+       lea bx,[es:inFile]
+       or [BYTE es:di],0 ;jest juz inFile
+       jnz @@f2 ;jak jest to sprawdz outSpec
+       dec si
+       call @GFS
+       jc @@exi0
+       jmp gChar
+@@f2:
+       lea di,[es:ofSpec]
+       lea bx,[es:outFile]
+       or [BYTE es:di],0 ;juz jest outFile
+       jnz @@exi0
+       dec si ;wyrownaj
+       call @GFS
+       jc @@exi0
+       jmp gChar
+
+switch:
+       lodsb
+       or al,20h
+       cmp al,'n'
+       jne @@exi0
+       lea di,[es:aLabel]
+       cmp [BYTE es:di],0
+       jne @@exi0
+       mov [BYTE es:di],1 ;samo /n
+       cmp [BYTE si],':'
+       jne @@nx
+       inc si
+@@nx:
+       mov cx,15 +1 ;prawidlowy tylko wyskok z petli.
+gLab:
+       cmp [BYTE si],20h
+       jbe gChar
+       movsb
+       loop gLab
+       jmp @@exi0 ;blad
+
+@@exi0:
+       pop es
+       stc
+       ret
+
+@@exip:
+       cmp [es:inFile],0
+       je @@exi0 ;inFile
+       call @ALAB
+       call @OUTF
+       pop es
+       clc
+       ret
+       ENDP
+;----------------------------------------------------------------------------
+       PROC @GFS ;ds:si src, es:di dest, es:bx dest.filename, cy error
+       LOCALS
+       push dx bp
+       mov dx,di ;tymczas
+       mov bp,bx ; /
+       mov cx,63 +1
+ @@l1:
+       cmp [BYTE si],20h
+       jbe rWrite
+       movsb
+       loop @@l1
+       jmp @@er
+rWrite:
+       mov [BYTE es:di],0  ;*
+       mov cx,12 +1
+ @@l2:
+       dec di ;ostatni znak w f.spec
+       cmp [BYTE es:di],'\'
+       je swByte
+       cmp di,dx
+       jb swByte
+       mov al,[es:di]
+       mov [es:bx],al
+       inc bx
+       loop @@l2
+       jmp @@er
+swByte:
+       dec bx ;wsk na ostatnia lit.
+       mov di,bp
+ @@l3:
+       cmp di,bx
+       jae @@rt
+       mov al,[es:bx]
+       mov ah,[es:di]
+       mov [es:di],al
+       mov [es:bx],ah
+       inc di
+       dec bx
+       jmp @@l3
+@@er:
+       pop bp dx
+       stc
+       ret
+@@rt:
+       pop bp dx
+       clc
+       ret
+       ENDP
+;----------------------------------------------------------------------------
+       PROC @ALAB   ;0 nie bylo /n, 1 bylo /n, >1 bylo /n:nazwa
+       LOCALS
+       cmp [es:aLabel],1
+       jne @@ex
+       lea si,[es:inFile]
+       lea di,[es:aLabel]
+ @@l1:
+       cmp [BYTE es:si],'.'
+       je @@ex
+       cmp [BYTE es:si],0
+       je @@ex
+       mov al,[es:si]
+       mov [es:di],al
+       inc si
+       inc di
+       jmp @@l1
+ @@ex:
+       ret
+       ENDP
 ;----------------------------------------------------------------------------
 
-_TEXT SEGMENT WORD PUBLIC 'CODE'
-      ASSUME cs:_TEXT,es:_DATA
-      PUBLIC getParam
+       PROC @OUTF
+       LOCALS
+       lea si,[es:inFile]
+       lea di,[es:ofSpec]
+       lea bx,[es:outFile]
+       cmp [BYTE es:di],0
+       jne @@exip
+       mov cx,8 +1
+ @@rw:
+       cmp [BYTE es:si],'.'
+       je @@aext
+       cmp [BYTE es:si],0
+       je @@aext
+       mov al,[es:si]
+       mov [es:di],al
+       mov [es:bx],al
+       inc si
+       inc di
+       inc bx
+       loop @@rw
+       stc
+       ret
+@@aext:
+       mov ax,'i.'
+       mov [es:di],ax
+       mov [es:bx],ax
+       add di,2
+       add bx,2
+       mov ax,'cn'
+       mov [es:di],ax
+       mov [es:bx],ax
+       add di,2
+       add bx,2
+       mov [BYTE es:di],0
+       mov [BYTE es:bx],0
+@@exip:
+       clc
+       ret
+       ENDP
 
-JUMPS
+DATASEG
+EXTRN aLabel:BYTE,inFile:BYTE,outFile:BYTE
 
-GetParam        PROC
-                mov ax,_DATA
-                mov es,ax
-                cld
-                mov si,80h
-                cmp BYTE PTR [si],0
-                je  errFl
-                inc si
-rCMDL:
-                lodsb
-                cmp al,0dh
-                je eCMDL
-                cmp al,9
-                je rCMDL
-                cmp al,20h
-                je rCMDL
-                cmp al,'/'
-                je chkSw
-                cmp al,7eh
-                ja errFl
-                dec si  ;korekta po lodsb
+UDATASEG
+EXTRN ifSpec:BYTE,ofSpec:BYTE
 
-                cmp es:[fileIn],0   ;inFile
-                jne cOut
-                lea di,es:[fileIn]
-                jmp getFN
-         cOut:
-                cmp es:[fileOut],0  ;outFile
-                jne errFl
-                lea di,es:[fileOut]
-getFN:
-                mov cx,8 +1  ;prawidlowa nazwa konczy sie wyskokiem z loop
-          nme:
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                cmp BYTE PTR [si],'.'
-                je dot
-                cmp BYTE PTR [si],7eh
-                ja errFl
-                movsb
-                loop getFN
-                jmp errFl
-          dot:
-                movsb
-                mov cx,3 +1  ;jak przy nazwie
-          ext:
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                cmp BYTE PTR [si],7eh
-                ja errFl
-                movsb
-                loop ext
-                jmp errFl
-
-errFl:
-                mov bx,1 ;ma byc w BX
-                ret
-
-chkSw:
-                mov cx,15 +1        ;tylko przez skok
-                lea di,es:[aName]
-                lodsb
-                or al,100000b
-                cmp al,'n'
-                jne errFl
-                cmp BYTE PTR es:[di],0
-                jne errFl
-                mov BYTE PTR es:[di],1 ;[di] podano '/n'
-                cmp BYTE PTR [si],':'
-                jne getAN
-                inc si
-         getAN:
-                cmp BYTE PTR [si],20h
-                jbe rCMDL
-                cmp BYTE PTR [si],7eh
-                ja rCMDL
-                movsb
-                loop getAN
-                jmp errFl
-
-eCMDL:
-                lea di,es:[fileIn]
-                lea bx,es:[fileOut]
-                cmp BYTE PTR es:[bx],0
-                jne twoFiles
-                ;jeden plik:
-movFN:
-                mov al,es:[di]
-                cmp al,'.'
-                je  addExt
-                cmp al,0
-                je  addExt
-                mov es:[bx],al
-                inc di
-                inc bx
-                jmp movFN
-addExt:
-                mov es:[bx],'i.'    ;rozszerzenie
-                mov es:[bx+2],'cn'
-                mov es:[SPaddr],bx
-                add SPaddr,4        ;korekta
-                jmp done
-
-twoFiles:       ;sa podane oba pliki
-                cmp BYTE PTR es:[bx],0
-                je eofn
-                inc bx
-                jmp twoFiles
-          eofn:
-                mov es:[SPaddr],bx
-                inc bx         ;po nazwie musi zostac 0 z buf.
-                sub bx,5       ;korekta jak 2 pliki!
-done:
-                mov es:[bx+5],'od'
-                mov es:[bx+7],'en'
-                mov es:[bx+9],'$.'
-                ret
-GetParam        ENDP
-
-_TEXT ENDS
-
-_DATA SEGMENT WORD PUBLIC 'DATA'
-      EXTRN fileIn,fileOut,aName,SPaddr:WORD
-_DATA ENDS
-      END
+       END

@@ -1,163 +1,144 @@
-;----------------------------------------------------------------------------
-; BINC v2.2.2 * MOD1124 * (c)1995 'marikaz'
-;  ++++
+;============================================================================
+; BINC v2.3.1 * MOD2502                                    (c)1995 'marikaz'
+; --------------------------------------------------------------------------
 ; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego
-; programu w asemblerze.
-;----------------------------------------------------------------------------
-; Glowna czesc programu. Czyta i zapisuje pliki, obsluguje bledy, podaje
-; komunikaty, wola procedury itd.
-;----------------------------------------------------------------------------
+; w asemblerze w postaci DB ...
+;============================================================================
 
-_TEXT SEGMENT WORD PUBLIC 'CODE'
-      ASSUME cs:_TEXT,ds:_DATA
-      EXTRN bin2db:PROC,getParam:PROC
+        IDEAL
+        MODEL SMALL
 
+        INCLUDE '..\..\_MAC\ifileio.mac'
+
+        MACRO IFEMPTY
+        LOCAL @ex
+        push es
+        mov ah,2fh
+        int 21h
+        cmp [es:bx+1ah],0
+        jne @ex
+        cmp [es:bx+1ch],0
+   @ex:
+        pop es
+        ENDM
+
+CODESEG
+EXTRN GetParams:PROC,Bin2db:PROC
+EXTRN ChoiceBpl:PROC  ;czeka na t/n i enter -> choicex.lib
 JUMPS
-start:
-          call GetParam   ;GP.ASM
-          mov ax,_DATA
-          mov ds,ax
-          cmp bx,1
-        je  prnInfo
-          mov ah,4eh ;czy na dysku?
-          mov cx,1
-          lea dx,fileOut
-          int 21h
-          jc nsfn
-        lea dx,existTxt
-          mov ah,9
-          int 21h
-getKey:
-          mov ah,7
-          int 21h
-          cmp al,1bh
-          je brk
-          cmp al,0dh
-          je brk
-          mov ah,al      ;w ah kopia do sprawdzen
-          or al,100000b
-          cmp al,'n'
-          je brk
-          or ah,100000b
-          cmp ah,'y'
-          jne getKey
-nsfn:
-          mov ax,3d00h
-          lea dx,fileIn
-          int 21h
-          jc prnInfo
-          mov bx,ax
 
-          mov ah,3fh
-          lea dx,ssf
-          mov cx,0f000h            ;max. bufor
-          int 21h
-          jc  fileErr
-          cmp ax,0                 ;plik 0b?
-          je  err0b
-          mov cx,ax
+        PROC Main
+        call GetParams
+        mov ax,DGROUP
+        mov ds,ax
+        mov es,ax
+        jc infMsg     ;CY, wyswietl info. (ax=0
+        FFIND ifSpec
+        jc infMsg
+        IFEMPTY
+        je emErr
 
-          mov ah,3eh
-          int 21h
+        FFIND ofSpec
+        jc openFiles
+        mov si,OFFSET ynMsg
+        call @Puts
+        call ChoiceBpl ;(t/n)?
+        jc break ;CY=odp.nie
 
-          call Bin2db              ;B2D.ASM w cx=wielkosc pliku.
-          cmp cx,0ffa0h
-          ja  ovInfo
+openFiles:
+        FOPEN ifSpec,RE
+        jc ioErr
+        mov [hTmp],ax
+        FCREATE ofSpec
+        jc ioErr
+        mov bx,ax
+        mov si,OFFSET wMsg
+        call @Puts
+do:
+        lea si,[inBuf]
+        lea di,[outBuf]
+        xchg bx,[hTmp]    ;bx=hInFile
+        FREAD inBuf,256
+        or ax,ax
+        jz closeFiles
+        mov cx,ax
+        call Bin2db ;ret: cx=ilosc bajtow w buforze
+        xchg bx,[hTmp] ;bx= hOutFlile
+        FWRITE outBuf
+        jmp do
 
-          push cx
-          mov ah,3ch
-          mov dx,OFFSET fileOut
-          mov cx,0
-          int 21h
-          jc  fileErr
-          mov bx,ax
+closeFiles:
+        FCLOSE
+        xchg bx,[hTmp]
+        FCLOSE
+        mov si,OFFSET okMsg
+        call @Puts
+        mov si,OFFSET outFile
+        call @Puts
+        mov si,OFFSET okMsg2
+        mov al,0
 
-          pop cx
-          mov ax,_BSS
-          mov ds,ax
-          mov ah,40h
-          lea dx,sdf
-          int 21h
-          mov ax,_DATA
-          mov ds,ax
-          jc  fileErr
-
-          mov ah,3eh
-          int 21h
-
-          mov bx,SPaddr
-          mov BYTE PTR [bx],20h
-          mov dx,OFFSET fileOut
-          mov ah,9
-          int 21h
-          mov al,0
 exit:
-          mov ah,4ch
-          int 21h
+        call @Puts
+        mov ah,4ch
+        int 21h
+break:
+        mov si,OFFSET brkMsg
+        mov al,3
+        jmp exit
+ioErr:
+        mov si,OFFSET ioMsg
+        mov al,1
+        jmp exit
+emErr:
+        mov si,OFFSET empMsg
+        mov al,2
+        jmp exit
+infMsg:
+        mov si,OFFSET info
+        mov al,-1
+        jmp exit
+        ENDP
 
-brk:
-          mov ah,9
-          mov dx,OFFSET brkTxt
-          int 21h
-          mov al,0
-          jmp exit
+        PROC @Puts
+        LOCALS
+        push ax
+        mov ah,0eh
+    @@pl:
+        lodsb
+        or al,al
+        jz @@ex
+        int 10h
+        jmp @@pl
+    @@ex:
+        pop ax
+        ret
+        ENDP
+;--------------------------
+DATASEG
+PUBLIC aLabel,inFile,outFile
+hTmp    DW ?
+aLabel  DB 15 DUP(0),0
+inFile  DB 12 DUP(0),0
+outFile DB 12 DUP(0),0
 
-prnInfo:
-          mov dx,OFFSET info
-          mov ah,9
-          int 21h
-          mov al,0
-          jmp exit
-fileErr:
-          mov dx,OFFSET foTxt
-          mov ah,9
-          int 21h
-          jmp exit
-err0b:
-          mov dx,OFFSET txt0b
-          mov ah,9
-          int 21h
-          mov al,0
-          jmp exit
-ovInfo:
-          mov dx,OFFSET ovTxt
-          mov ah,9
-          int 21h
-          mov al,-1
-          jmp exit
+ioMsg   DB 'Bledy podczas operacji na pliku.',13,10,0
+empMsg  DB 'Plik zrodlowy jest pusty.',13,10,0
+ynMsg   DB 'Plik docelowy istnieje juz w podanej lokalizacji. Nadpisac (t/n)? ',0
+brkMsg  DB 'Zapis przerwano.',13,10,0
+okMsg   DB 'Plik ',0
+okMsg2  DB ' zapisano w podanej lokalizacji.',13,10,0
+wMsg    DB 'Czekaj... ',0
 
-_TEXT ENDS
+        INCLUDE 'imsg.inc'
 
-_DATA SEGMENT WORD PUBLIC 'DATA'
-PUBLIC ssf,fileIn,fileOut,SPaddr,aName
+UDATASEG
+PUBLIC ifSpec,ofSpec,inBuf,outBuf
+ifSpec  DB   64 DUP(?)
+ofSpec  DB   64 DUP(?)
+inBuf   DB  256 DUP(?)
+outBuf  DB 1362 DUP(?)
 
-info      DB "BINC v2.2 * (c)1995 'marikaz'",13,10
-          DB 'Convert binary file to assembly include file.',13,10,13,10
-          DB '    BINC.EXE <InFile.ext> [OutFile.ext] [/N[:][name]]',13,10,13,10
-          DB '/N[:]name  Array name, max. 15 characters.',13,10
-          DB '/N[:]      Set the input filename without extension as the array name.',13,10,13,10
-          DB 'If no destination filename is provided, BINC will default to the input filename',13,10
-          DB 'with the INC extension.',13,10,'$'
-foTxt     DB 'File operation error.',13,10,'$'
-ovTxt     DB 'The target file is too large.',13,10,'$'
-txt0b     DB 'The source file is empty.',13,10,'$'
-existTxt  DB 'A file already exists. Continue? [y/N]',13,10,'> $'
-brkTxt    DB 'Discontinued at user request.',13,10,'$'
-aName     DB 0,15 DUP (20h)
-fileIn    DB 12 DUP (0),0
-fileOut   DB 12 DUP (0),0,6 DUP (20h)
-SPaddr    DW ?
+STACK 100h
 
-ssf       DB 0f000h DUP (?)
-
-_DATA ENDS
-
-STACK SEGMENT PARA STACK 'STACK'
-      DW 32 DUP (?)
-STACK ENDS
-
-_BSS SEGMENT WORD PUBLIC 'BSS'
-     PUBLIC sdf
-sdf  LABEL BYTE
-_BSS ENDS
-     END start
+        END Main

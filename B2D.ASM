@@ -1,135 +1,120 @@
 ;----------------------------------------------------------------------------
-; * Bin2db:PROC * REV. C *                                         BINC v2.2
+; * Bin2db:PROC * REV. D *                                         BINC v2.3
 ;----------------------------------------------------------------------------
+;  in: dgroup:si=ptr to src.buf.
+;      dgroup:di=ptr to dst.buf.
+;      cx=num. of bytes in src.buf.
+; ret: cx=num. of bytes in dst.buf.
+;-----------------------------------
 
-_TEXT SEGMENT WORD PUBLIC 'CODE'
-      PUBLIC Bin2db
-      ASSUME cs:_TEXT,ds:_DATA,es:_BSS
+        IDEAL
+        MODEL SMALL
 
+CODESEG
+PUBLIC Bin2db
 
-Bin2db    PROC
-          mov ax,_BSS
-          mov es,ax
+        PROC Bin2db
+        LOCALS
 
-          mov di,OFFSET sdf
-          mov si,OFFSET aName
+        push ax bx di
+        cmp [aLabel],0
+        je newLine
+        push si
+        lea si,[aLabel]
+  @@cp:
+        cmp [BYTE si],0
+        je @@ex
+        movsb
+        jmp @@cp
+  @@ex:
+        mov al,20h
+        stosb
+        mov [aLabel],0 ;tylko za 1 razem
+        pop si
 
-          cmp BYTE PTR [si],0
-          je skpName
-          cmp BYTE PTR [si],1  ;nazwa = nazwa pliku
-          je mFName
-mvName:
-          movsb
-          cmp BYTE PTR [si],20h
-          jne mvName
-          movsb
-          jmp skpName
-mFName:
-           mov si,OFFSET fileIn
-      mFN:
-           movsb
-           cmp BYTE PTR [si],'.'
-           je eFN
-           cmp BYTE PTR [si],0
-           jne mFN
-      eFN:
-           mov BYTE PTR es:[di],20h
-           inc di
-skpName:
-           mov si,OFFSET ssf
+newLine:
+        mov ax,'BD'
+        stosw
+        mov al,20h
+        stosb
+        mov dx,16 ;licznik pomocniczy
 
-nLine:
-           xor dx,dx       ;licznik pomocniczy dla linii
-           mov ax,'BD'
-           stosw
-           mov al,' '
-           stosb
-do:
-           inc dx
-           lodsb
-           cmp al,0fh
-           ja hNum
-           call @1HexDig
-           jmp nxt
-     hNum:
-           call @2HexDig
-      nxt:
-           cmp cx,1
-           je eFile
-           cmp dx,16
-           je  eLine
-           mov al,','
-           stosb
-           loop do
-    eLine:
-           cmp di,0ffa0h
-           ja  eFile
-           mov ax,0a0dh
-           stosw
-           loop nLine
-eFile:
-           mov ax,0a0dh
-           stosw
-           mov cx,di    ;CX= ilosc zapisanych do bufora bajtow
-           ret
-Bin2db     ENDP
+nxByte:
+        lodsb
+        call @B2DB
+        mov [BYTE di],','
+        inc di
+        dec cx
+        or cx,cx
+        jz @@eos
+        dec dx
+        or dx,dx
+        jnz nxByte
+@@eos:
+        dec di
+        mov ax,0A0Dh
+        stosw
+        cmp cx,0
+        jne newLine
 
-@1HexDig  PROC
-          LOCALS
-          cmp al,9
-          ja @@9
-          add al,30h
-          stosb
-          ret
-     @@9:
-          mov BYTE PTR es:[di],'0'
-          inc di
-          add al,37h
-          stosb
-          mov BYTE PTR es:[di],'h'
-          inc di
-          ret
-@1HexDig  ENDP
+@@exip:
+        mov cx,di
+        pop ax   ;poczatkowa wartosc di
+        sub cx,ax  ;cx=ilossc b.w buf. celu
+        pop bx ax
+        ret
+        ENDP
 
-@2HexDig  PROC
-          LOCALS
-          mov ah,al
-          and ax,0f00fh
-          xchg ah,al
-          shr al,4
-          cmp al,9
-          ja @@91
-          add al,30h
-          stosb
-          jmp @@21
-    @@91:
-          mov BYTE PTR es:[di],'0'
-          inc di
-          add al,37h
-          stosb
-    @@21:
-          xchg ah,al
-          cmp al,9
-          ja @@92
-          add al,30h
-          stosb
-          jmp @@22
-    @@92:
-          add al,37h
-          stosb
-    @@22:
-          mov BYTE PTR es:[di],'h'
-          inc di
-          ret
-@2HexDig  ENDP
+        PROC @B2DB
+        LOCALS
+        cmp al,0fh   ;dla 1 cyfry hex
+        ja twodg
+        cmp al,9
+        ja @@a91
+        add al,30h  ;do ascii
+        stosb
+        ret
+   @@a91:
+        mov ah,'0'
+        add al,37h ;do ascii (duze litery)
+        xchg ah,al
+        stosw
+        mov al,'h'
+        stosb
+        ret
+twodg:
+        cmp al,9fh   ;dla 2 cyfr,pierwsza < A, nie potrzebuje 0
+        jbe @@sl0
+        mov [BYTE di],'0'
+        inc di
+@@sl0:
+        push cx   ;\
+        mov cx,2  ;  moze w petli?
+        mov ah,al
+        and ax,0f00fh
+        shr ah,4
+        xchg al,ah
+@@sd:
+        cmp al,9
+        ja @@a92
+        add al,30h
+        stosb
+        xchg al,ah ;1 cyfra w al
+        loop @@sd
+        jmp @@exip
+@@a92:
+        add al,37h
+        stosb
+        xchg al,ah
+        loop @@sd
+@@exip:
+        mov [BYTE di],'h'
+        inc di
+        pop cx
+        ret
+        ENDP
 
-_TEXT ENDS
+DATASEG
+EXTRN aLabel:BYTE
 
-_DATA SEGMENT WORD PUBLIC 'DATA'
-      EXTRN ssf,aName,fileIn
-_DATA ENDS
-
-_BSS  SEGMENT WORD PUBLIC 'BSS'
-      EXTRN sdf
-_BSS  ENDS
-      END
+        END
