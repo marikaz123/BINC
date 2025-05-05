@@ -102,7 +102,8 @@ infMsg:
 
         PROC @Puts
         LOCALS
-        push ax
+        push ax bx
+        mov bh,0 ;??
         mov ah,0eh
     @@pl:
         lodsb
@@ -111,7 +112,7 @@ infMsg:
         int 10h
         jmp @@pl
     @@ex:
-        pop ax
+        pop bx ax
         ret
         ENDP
 ;--------------------------
