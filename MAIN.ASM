@@ -1,8 +1,8 @@
 ;============================================================================
-; BINC v2.3.1 * MOD2502                                    (c)1995 'marikaz'
+; BINC v2.4 * MOD2505                                     (c)1995 'marikaz'
 ; --------------------------------------------------------------------------
 ; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego
-; w asemblerze w postaci DB ...
+; w asemblerze w postaci: DB ...
 ;============================================================================
 
         IDEAL
@@ -25,6 +25,8 @@
 CODESEG
 EXTRN GetParams:PROC,Bin2db:PROC
 EXTRN ChoiceBpl:PROC  ;czeka na t/n i enter -> choicex.lib
+EXTRN @B2HASC:NEAR
+PUBLIC vProc
 JUMPS
 
         PROC Main
@@ -32,7 +34,7 @@ JUMPS
         mov ax,DGROUP
         mov ds,ax
         mov es,ax
-        jc infMsg     ;CY, wyswietl info. (ax=0
+        jc infMsg     ;CY, wyswietl info.
         FFIND ifSpec
         jc infMsg
         IFEMPTY
@@ -42,7 +44,7 @@ JUMPS
         jc openFiles
         mov si,OFFSET ynMsg
         call @Puts
-        call ChoiceBpl ;(t/n)?
+        call ChoiceBpl
         jc break ;CY=odp.nie
 
 openFiles:
@@ -103,7 +105,7 @@ infMsg:
         PROC @Puts
         LOCALS
         push ax bx
-        mov bh,0 ;??
+        mov bh,0
         mov ah,0eh
     @@pl:
         lodsb
@@ -115,20 +117,24 @@ infMsg:
         pop bx ax
         ret
         ENDP
-;--------------------------
+
+vProc   DW @B2HASC ;domyslnie hex
+
 DATASEG
-PUBLIC aLabel,inFile,outFile
+PUBLIC aLabel,inFile,outFile,iNum,fl
 hTmp    DW ?
+iNum    DW 16
+fl      DB 0,0
 aLabel  DB 15 DUP(0),0
 inFile  DB 12 DUP(0),0
 outFile DB 12 DUP(0),0
 
 ioMsg   DB 'Bledy podczas operacji na pliku.',13,10,0
 empMsg  DB 'Plik zrodlowy jest pusty.',13,10,0
-ynMsg   DB 'Plik docelowy istnieje juz w podanej lokalizacji. Nadpisac (t/n)? ',0
+ynMsg   DB 'Plik docelowy istnieje juz w podanej lokalizacji. Nadpisac [t/n]? ',0
 brkMsg  DB 'Zapis przerwano.',13,10,0
-okMsg   DB 'Plik ',0
-okMsg2  DB ' zapisano w podanej lokalizacji.',13,10,0
+okMsg   DB "Plik '",0
+okMsg2  DB "' zapisano w podanej lokalizacji.",13,10,0
 wMsg    DB 'Czekaj... ',0
 
         INCLUDE 'imsg.inc'
@@ -138,7 +144,7 @@ PUBLIC ifSpec,ofSpec,inBuf,outBuf
 ifSpec  DB   64 DUP(?)
 ofSpec  DB   64 DUP(?)
 inBuf   DB  256 DUP(?)
-outBuf  DB 1362 DUP(?)
+outBuf  DB 3600 DUP(?)
 
 STACK 100h
 

@@ -1,25 +1,32 @@
-;----------------------------------------------------------------------------
-; * GetParams:PROC * REV. D *                                      BINC v2.3
-;----------------------------------------------------------------------------
-; BINC.EXE  [drive:][path]<InFile> [dirve:][path][OutFile] [/N[:][name]]
-;
+COMMENT # -------------------------------------------------------------------
+* GetParams:PROC * REV. D1 * BINC v2.4
+-----------------------------------------------------------------------------
+linia:
+       [/i=nn] [/N[:][name]] [{/B | /D | /H}]
+       [drive:][path]<InFile>
+       [dirve:][path][OutFile]
+--------------------------------------------------------------------------- #
 
        IDEAL
        MODEL SMALL
 
 CODESEG
+
+EXTRN @B2DASC:NEAR,@B2BASC:NEAR
+EXTRN vProc:WORD
 PUBLIC GetParams
+JUMPS
 
        PROC GetParams
        LOCALS
        push es
        mov ax,DGROUP
        mov es,ax
+       mov [es:ifSpec],0 ;jako znacznik
+       mov [es:ofSpec],0 ; /
        mov si,80h
        cmp [BYTE si],0
        je @@exi0  ;exit 0 = info
-       mov [es:ifSpec],0 ;jako znacznik
-       mov [es:ofSpec],0 ; /
        inc si
 gChar:
        lodsb
@@ -28,9 +35,9 @@ gChar:
        cmp al,20h
        je gChar
        cmp al,0dh
-       je @@exip  ;=ok  !jedyne mozliwe wyjscie bez bledu!
+       je @@exip  ; !jedyne mozliwe wyjscie bez bledu!
        cmp al,20h
-       jb @@exi0  ;=info
+       jb @@exi0  ;info
 
        cmp al,'/'
        je switch
@@ -56,12 +63,23 @@ switch:
        lodsb
        or al,20h
        cmp al,'n'
-       jne @@exi0
+       je caseN
+       cmp al,'h'
+       je caseH
+       cmp al,'d'
+       je caseD
+       cmp al,'i'
+       je caseI
+       cmp al,'b'
+       je caseB
+       jmp @@exi0
+;--------------------------------/ n /
+caseN:
        lea di,[es:aLabel]
        cmp [BYTE es:di],0
        jne @@exi0
        mov [BYTE es:di],1 ;samo /n
-       mov cx,15 +1 ;prawidlowy tylko wyskok z petli.
+       mov cx,15 +1
        cmp [BYTE si],':'
        jne gLab
        inc si
@@ -71,6 +89,77 @@ gLab:
        movsb
        loop gLab
        jmp @@exi0 ;blad
+;--------------------------------/ d /
+caseD:
+       test [es:fl],1
+       jnz @@exi0
+       or [es:fl],1
+       lea ax,[NEAR @B2DASC]
+       mov [vProc],ax
+       cmp [BYTE si],20h
+       ja @@exi0
+       jmp gChar
+;--------------------------------/ h /
+caseH:
+       test [es:fl],1
+       jnz @@exi0
+       or [es:fl],1
+       cmp [BYTE si],20h
+       ja @@exi0
+       jmp gChar
+;--------------------------------/ b /
+caseB:
+       test [es:fl],1
+       jnz @@exi0
+       or [es:fl],1
+       lea ax,[NEAR @B2BASC]
+       mov [vProc],ax
+       cmp [BYTE si],20h
+       ja @@exi0
+       jmp gChar
+;--------------------------------/ i /
+caseI:
+       test [fl+1],1
+       jnz @@exi0
+       or [fl+1],1
+       lodsb
+       cmp al,'='
+       jne @@exi0
+
+       lodsb
+       cmp al,'0'
+       jb @@exi0
+       cmp al,'9'
+       ja @@exi0
+       sub al,'0'
+       mov ah,al
+       ;---
+       cmp [BYTE si],20h
+       jbe @@eoi
+       lodsb
+       cmp al,'0'
+       jb @@exi0
+       cmp al,'9'
+       ja @@exi0
+       sub al,'0'
+       ;---
+       push bx
+       shl ah,1
+       mov bl,ah
+       shl ah,2
+       add ah,bl
+       pop bx
+       add al,ah
+       cmp [BYTE si],20h
+       ja @@exi0
+@@eoi:
+       cbw
+       cmp ax,1
+       jb @@exi0
+       cmp ax,16
+       ja @@exi0
+       mov [es:iNum],ax
+       jmp gChar
 
 @@exi0:
        pop es
@@ -86,8 +175,8 @@ gLab:
        clc
        ret
        ENDP
-;----------------------------------------------------------------------------
-       PROC @GFS ;ds:si src, es:di dest, es:bx dest.filename, cy error
+
+       PROC @GFS ;ds:si zr, es:di cel, es:bx nazwa.cel, cy blad
        LOCALS
        push dx bp
        mov dx,di ;tymczas
@@ -135,8 +224,9 @@ swByte:
        clc
        ret
        ENDP
-;----------------------------------------------------------------------------
-       PROC @ALAB   ;0 nie bylo /n, 1 bylo /n, >1 bylo /n:nazwa
+       
+
+       PROC @ALAB ;0:nie ma /n, 1:jest /n, >1:jest /n:nazwa
        LOCALS
        cmp [es:aLabel],1
        jne @@ex
@@ -155,7 +245,6 @@ swByte:
  @@ex:
        ret
        ENDP
-;----------------------------------------------------------------------------
 
        PROC @OUTF
        LOCALS
@@ -198,7 +287,7 @@ swByte:
        ENDP
 
 DATASEG
-EXTRN aLabel:BYTE,inFile:BYTE,outFile:BYTE
+EXTRN aLabel:BYTE,inFile:BYTE,outFile:BYTE,fl:BYTE,iNum:WORD
 
 UDATASEG
 EXTRN ifSpec:BYTE,ofSpec:BYTE
