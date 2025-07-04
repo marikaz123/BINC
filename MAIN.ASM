@@ -22,6 +22,8 @@
         pop es
         ENDM
 
+IBL = 240  ; /i = 1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 16
+
 CODESEG
 EXTRN GetParams:PROC,Bin2db:PROC
 EXTRN ChoiceBpl:PROC  ;czeka na t/n i enter -> choicex.lib
@@ -60,7 +62,7 @@ do:
         lea si,[inBuf]
         lea di,[outBuf]
         xchg bx,[hTmp]    ;bx=hInFile
-        FREAD inBuf,256
+        FREAD inBuf,IBL
         or ax,ax
         jz closeFiles
         mov cx,ax
@@ -143,8 +145,8 @@ UDATASEG
 PUBLIC ifSpec,ofSpec,inBuf,outBuf
 ifSpec  DB   64 DUP(?)
 ofSpec  DB   64 DUP(?)
-inBuf   DB  256 DUP(?)
-outBuf  DB 3600 DUP(?)
+inBuf   DB  IBL DUP(?)
+outBuf  DB 3400 DUP(?)
 
 STACK 100h
 
