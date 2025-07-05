@@ -34,16 +34,19 @@
    Przelacznik /N[:]nazwa (opcjonalny) sluzy do wstawienia w pliku docelowym
    nazwy dla utworzonej tablicy. Nazwa nie moze byc dluzsza niz 15 znakow.
    Zastosowanie przelacznika /N bez podania nazwy wstawi jako nazwe dla
-   tablicy nazwe pliku wejsciowego bez rozszerzenia.
+   tablicy nazwe pliku wejsciowego bez rozszerzenia. Nalezy przy tym
+   pamietac, ze znaki prawidlowe w nazwach plikow MS-DOS nie zawsze beda
+   prawidlowe w nazwach zmiennych, a sama nazwa pliku moze byc slowem
+   zastrzezonym kompilatora lub jezyka.
 
    1.2 Uzycie
 
        Zgodnie ze skladnia:
 
-       BINC.EXE [dive:][path]<Infile>   \
-                [drive:][path][OutFile] \
-                [{/B | /D | /H}]        \
-                [I=nn]                  \
+       BINC.EXE [dive:][path]<Infile>
+                [drive:][path][OutFile]
+                [{/B | /D | /H}]
+                [I=nn]
                 [/N[:][nazwa]]
 
        Np.:
@@ -52,9 +55,10 @@
        - BINC rozpoznaje przeznaczenie plikow po kolejnosci ich wystepowania
          w linii polecen. Pierwsza napotkana nazwa pliku bedzie traktowana
          jako nazwa pliku zrodlowego.
-       - Polozenie pozostalych opcji w linii jest dowolne.
-       - Opcja /H (hex) jest domyslna dla BINC i nie jest wymagana.
-
+       - Opcja /H (hex) jest domyslna i nie jest wymagane jej wpisywanie.
+       - Opcja /I=nn zapisuje nn pozycji w wierszu. Niestety, ze wzgledu
+         na pewne uproszczenia, tylko dla wartosci nn, ktore dziela 240
+         bez reszty.
 
 2. PLIK WYJSCIOWY
    Ponizszy opis dotyczy pliku wygenerowanego bez zmian dokonywanych
@@ -135,5 +139,3 @@
    MS-DOS 5.0+   - na VM. (Wersje 1.1, 2.1 i 2.2 na maszynie fizycznej)
    FreeDOS 1.3+  - na VM.
    DOSBox 0.74-3 - Kompilacja i testy.
-
-MOD2505
