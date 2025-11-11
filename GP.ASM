@@ -1,10 +1,10 @@
 COMMENT # -------------------------------------------------------------------
-* GetParams:PROC * REV. D1 * BINC v2.4
+GetParams:PROC * REV. D1 * BINC v2.5
 -----------------------------------------------------------------------------
 linia:
-       [/i=nn] [/N[:][name]] [{/B | /D | /H}]
-       [drive:][path]<InFile>
-       [dirve:][path][OutFile]
+        [/i=nn] [/N[:][name]] [{/B | /D | /H}]
+        [drive:][path]<InFile>
+        [dirve:][path][OutFile]
 --------------------------------------------------------------------------- #
 
        IDEAL
@@ -17,12 +17,12 @@ EXTRN vProc:WORD
 PUBLIC GetParams
 JUMPS
 
-       PROC GetParams
+PROC   GetParams
        LOCALS
        push es
        mov ax,DGROUP
        mov es,ax
-       mov [es:ifSpec],0 ;jako znacznik
+       mov [es:ifSpec],0 ;  tu znacznik
        mov [es:ofSpec],0 ; /
        mov si,80h
        cmp [BYTE si],0
@@ -35,7 +35,7 @@ gChar:
        cmp al,20h
        je gChar
        cmp al,0dh
-       je @@exip  ; !jedyne mozliwe wyjscie bez bledu!
+       je @@exip  ;jedyne mozliwe wyjscie bez bledu!
        cmp al,20h
        jb @@exi0  ;info
 
@@ -44,7 +44,7 @@ gChar:
        lea di,[es:ifSpec]
        lea bx,[es:inFile]
        or [BYTE es:di],0 ;jest juz inFile
-       jnz @@f2 ;jak jest to sprawdz outSpec
+       jnz @@f2 ;sprawdz outSpec
        dec si
        call @GFS
        jc @@exi0
@@ -176,7 +176,7 @@ caseI:
        ret
        ENDP
 
-       PROC @GFS ;ds:si zr, es:di cel, es:bx nazwa.cel, cy blad
+PROC   @GFS ;ds:si zr, es:di cel, es:bx nazwa.cel, cy blad
        LOCALS
        push dx bp
        mov dx,di ;tymczas
@@ -224,9 +224,8 @@ swByte:
        clc
        ret
        ENDP
-       
 
-       PROC @ALAB ;0:nie ma /n, 1:jest /n, >1:jest /n:nazwa
+PROC   @ALAB ;0 nie ma /n, 1 jest /n, >1 jest /n:nazwa
        LOCALS
        cmp [es:aLabel],1
        jne @@ex
@@ -246,7 +245,7 @@ swByte:
        ret
        ENDP
 
-       PROC @OUTF
+PROC   @OUTF
        LOCALS
        lea si,[es:inFile]
        lea di,[es:ofSpec]

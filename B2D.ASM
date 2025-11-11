@@ -1,5 +1,5 @@
 ;----------------------------------------------------------------------------
-; * Bin2db:PROC * REV. E1 *                                        BINC v2.4
+; * Bin2db:PROC * REV. E1 *                                        BINC v2.5
 ;----------------------------------------------------------------------------
 
         IDEAL
@@ -10,11 +10,11 @@ EXTRN vProc:WORD
 PUBLIC Bin2db
 PUBLIC @B2HASC,@B2DASC,@B2BASC
 
-        PROC Bin2db
+PROC    Bin2db
         LOCALS
         ;-----------------------------------
-        ;  we: dgroup:si=wsk do buf. zr.
-        ;      dgroup:di=wsk do buf. cel
+        ;  we: dgroup:si=wsk. na buf. zr.
+        ;      dgroup:di=wsk. na buf. cel
         ;      cx= bajtow w buf. zr.
         ;  wy: cx= bajtow w buf. cel
         ;-----------------------------------
@@ -63,8 +63,8 @@ nxByte:
         pop bx ax
         ret
         ENDP
-;----------------------------------------------------------------------------
-        PROC @B2HASC
+        ;---
+PROC    @B2HASC
         LOCALS
         cmp al,0fh  ;dla 1 cyfry hex
         ja @@2dg
@@ -112,8 +112,8 @@ nxByte:
         pop cx
         ret
         ENDP
-;-------------------
-        PROC @B2DASC
+
+PROC    @B2DASC
         LOCALS
         push bx dx
         xor dx,dx
@@ -142,7 +142,7 @@ nxByte:
         add ax,3030h
         stosw
 @@exip:
-        IFDEF DDEC      ;liczby dziedietne z 'd'
+        IFDEF DDEC      ;liczby dziesietne z 'd'
          mov al,'d'
          stosb
         ENDIF
@@ -150,8 +150,8 @@ nxByte:
         pop dx bx
         ret
         ENDP
-;-------------------
-        PROC @B2BASC
+
+PROC    @B2BASC
         LOCALS
         IFNDEF ALLZ
          cmp al,0
