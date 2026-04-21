@@ -119,9 +119,9 @@ caseB:
        jmp gChar
 ;--------------------------------/ i /
 caseI:
-       test [fl+1],1
+       test [es:fl+1],1
        jnz @@exi0
-       or [fl+1],1
+       or [es:fl+1],1
        lodsb
        cmp al,'='
        jne @@exi0
