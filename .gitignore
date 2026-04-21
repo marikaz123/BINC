@@ -2,5 +2,6 @@
 *.OBJ
 *.TR
 *.BIN
+*.BAT
 REPORT.TXT
 
