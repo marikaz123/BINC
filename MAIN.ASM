@@ -1,43 +1,44 @@
-;============================================================================
-; BINC v2.5 ** MOD2509                                    (c)1995 'marikaz'
-; --------------------------------------------------------------------------
-; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego
-; w asemblerze.
-;============================================================================
+;===========================================================================;
+; BINC v2.7 ** MOD2602                                    (c)1995 'marikaz' ;
+; ------------------------------------------------------------------------- ;
+; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego  ;
+; w asemblerze.                                                             ;
+;                                                                           ;
+; Skladnia:                                                                 ;
+;                                                                           ;
+; BINC.EXE  <InFileSpec> [OutFileSpec] \      -pliki we/wy                  ;
+;           [{/B[B] | /D | /H}]        \      -reprezentacja wartosci       ;
+;           [/N[:][name]]              \      -nazwa tabl.                  ;
+;           [/I=nn]                    \      -ilosc pozycji                ;
+;                                                                           ;
+;===========================================================================;
+
+INCLUDE INC\header.inc
 
         IDEAL
         MODEL SMALL
 
-        INCLUDE '..\..\_MAC\ifileio.mac'
+        CODESEG
 
-MACRO   IFEMPTY
-        LOCAL @ex
-        push es
-        mov ah,2fh
-        int 21h
-        cmp [WORD es:bx+1ah],0
-        jne @ex
-        cmp [WORD es:bx+1ch],0
-   @ex:
-        pop es
-        ENDM
-
-IBS = 1680          ;tylko i=9, 11, 13
-OBS = IBS/16*224+16 ;244b max. mozliwy rozmiar tablicy dla 16 bajtow zrodla
-                    ;plus max. 16b dlugosc nazwy tablicy
-CODESEG
 EXTRN GetParams:PROC,Bin2db:PROC
-EXTRN ChoiceBpl:PROC  ;czeka na t/n i enter -> choicex.lib
+EXTRN ChoiceBpl:PROC  ;choicex.lib
 EXTRN @B2HASC:NEAR
 PUBLIC vProc
-JUMPS
+
+        JUMPS
 
 PROC    Main
         call GetParams
         mov ax,DGROUP
         mov ds,ax
         mov es,ax
-        jc infMsg     ;CY=wyswietl info.
+        jc infMsg     ;CY, wyswietl info.
+        mov si,OFFSET inFile
+        mov di,OFFSET outFile
+        mov cx,12
+        repe cmpsb
+        or cx,cx
+        jz fnErr ;nazwy plikow nie moga byc idenyczne
         FFIND ifSpec
         jc infMsg
         IFEMPTY
@@ -53,28 +54,29 @@ PROC    Main
 openFiles:
         FOPEN ifSpec,RE
         jc ioErr
-        mov [hFile],ax
+        mov [hTmp],ax
         FCREATE ofSpec
         jc ioErr
         mov bx,ax
         mov si,OFFSET wMsg
         call @Puts
+        FWRITE hdr,HDRLEN ;dodaj info do pliku docelowego
 do:
         lea si,[inBuf]
         lea di,[outBuf]
-        xchg bx,[hFile]
+        xchg bx,[hTmp]    ;bx=hInFile
         FREAD inBuf,IBS
         or ax,ax
         jz closeFiles
         mov cx,ax
         call Bin2db ;ret: cx=ilosc bajtow w buforze
-        xchg bx,[hFile]
+        xchg bx,[hTmp] ;bx= hOutFlile
         FWRITE outBuf
         jmp do
 
 closeFiles:
         FCLOSE
-        xchg bx,[hFile]
+        xchg bx,[hTmp]
         FCLOSE
         mov si,OFFSET okMsg
         call @Puts
@@ -99,12 +101,16 @@ emErr:
         mov si,OFFSET empMsg
         mov al,2
         jmp exit
+fnErr:
+        mov si,OFFSET fnMsg
+        mov al,4
+        jmp exit
 infMsg:
         mov dx,OFFSET info
-        mov ah,9 ;pozwala na przekierowanie
-        int 21h   ;do pliku
+        mov ah,9h
+        int 21h
         mov al,-1
-        jmp exit+3  ;pomin 'call'
+        jmp exit+3 ;pomin call
         ENDP
 
 PROC    @Puts
@@ -123,34 +129,37 @@ PROC    @Puts
         ret
         ENDP
 
-vProc   DW @B2HASC ;domyslnie
+vProc   DW @B2HASC ;domyslnie hex
 
-DATASEG
-PUBLIC aLabel,inFile,outFile,iNum,fl
-hFile   DW ?
+        DATASEG
+
+PUBLIC aLabel,inFile,outFile,iNum,mode
+mode    FLAGS <0,0,0> ;allz,bdh,itm
+hTmp    DW ?
 iNum    DW 16
-fl      DB 0,0
 aLabel  DB 15 DUP(0),0
 inFile  DB 12 DUP(0),0
 outFile DB 12 DUP(0),0
 
 ioMsg   DB 'Blad podczas operacji na pliku.',13,10,0
 empMsg  DB 'Plik zrodlowy jest pusty.',13,10,0
-ynMsg   DB 'Plik docelowy istnieje juz w podanej lokalizacji. Nadpisac [t/n]? ',0
+fnMsg   DB 'Nazwa pliku zrodlowego nie moze byc nazwa dla pliku docelowego.',13,10,0
+ynMsg   DB 'Plik docelowy juz istnieje w podanej lokalizacji. Nadpisac [t/n]? ',0
 brkMsg  DB 'Zapis przerwano.',13,10,0
-okMsg   DB "Plik '",0
-okMsg2  DB "' zapisano w podanej lokalizacji.",13,10,0
+okMsg   DB "plik ",0
+okMsg2  DB " zostal zapisany w wybranej lokalizacji.",13,10,0
 wMsg    DB 'Czekaj... ',0
 
-        INCLUDE 'imsg.inc'
+INCLUDE '.\INC\imsg.inc'
 
-UDATASEG
+        UDATASEG
+
 PUBLIC ifSpec,ofSpec,inBuf,outBuf
 ifSpec  DB  64 DUP(?)
 ofSpec  DB  64 DUP(?)
 inBuf   DB IBS DUP(?)
 outBuf  DB OBS DUP(?)
 
-STACK 100h
+        STACK 100h
 
         END Main

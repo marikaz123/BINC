@@ -1,16 +1,18 @@
-COMMENT # -------------------------------------------------------------------
-GetParams:PROC * REV. D1 * BINC v2.5
+COMMENT #--------------------------------------------------------------------
+GetParams:PROC * REV. F * BINC v2.x
 -----------------------------------------------------------------------------
 linia:
-        [/i=nn] [/N[:][name]] [{/B | /D | /H}]
-        [drive:][path]<InFile>
-        [dirve:][path][OutFile]
---------------------------------------------------------------------------- #
+       [{/B[B] | /D | /H}] [/i=nn] [/N[:][name]]
+       [drive:][path]<InFile>
+       [dirve:][path][OutFile]
+----------------------------------------------------------------------------#
+
+INCLUDE INC\header.inc
 
        IDEAL
        MODEL SMALL
 
-CODESEG
+       CODESEG
 
 EXTRN @B2DASC:NEAR,@B2BASC:NEAR
 EXTRN vProc:WORD
@@ -91,9 +93,9 @@ gLab:
        jmp @@exi0 ;blad
 ;--------------------------------/ d /
 caseD:
-       test [es:fl],1
+       test [es:mode],MASK bdh
        jnz @@exi0
-       or [es:fl],1
+       or [es:mode],MASK bdh
        lea ax,[NEAR @B2DASC]
        mov [vProc],ax
        cmp [BYTE si],20h
@@ -101,17 +103,25 @@ caseD:
        jmp gChar
 ;--------------------------------/ h /
 caseH:
-       test [es:fl],1
+       test [es:mode],MASK bdh
        jnz @@exi0
-       or [es:fl],1
+       or [es:mode],MASK bdh
        cmp [BYTE si],20h
        ja @@exi0
        jmp gChar
 ;--------------------------------/ b /
 caseB:
-       test [es:fl],1
+       test [es:mode],MASK bdh
        jnz @@exi0
-       or [es:fl],1
+       or [es:mode],MASK bdh
+       cmp [BYTE si],20h
+       jbe @@s
+       lodsb
+       or al,20h
+       cmp al,'b'
+       jne @@exi0
+       or [es:mode],MASK allz
+  @@s:
        lea ax,[NEAR @B2BASC]
        mov [vProc],ax
        cmp [BYTE si],20h
@@ -119,11 +129,11 @@ caseB:
        jmp gChar
 ;--------------------------------/ i /
 caseI:
-       test [es:fl+1],1
+       test [es:mode],MASK itm
        jnz @@exi0
-       or [es:fl+1],1
+       or [es:mode],MASK itm
        lodsb
-       cmp al,'='
+       cmp al,'=' ;obowiazkowy
        jne @@exi0
 
        lodsb
@@ -176,7 +186,7 @@ caseI:
        ret
        ENDP
 
-PROC   @GFS ;ds:si zr, es:di cel, es:bx nazwa.cel, cy blad
+PROC   @GFS ;ds:si src, es:di dst, es:bx name.dst, cy error
        LOCALS
        push dx bp
        mov dx,di ;tymczas
@@ -285,10 +295,13 @@ PROC   @OUTF
        ret
        ENDP
 
-DATASEG
+       DATASEG
+
+EXTRN mode:FLAGS
 EXTRN aLabel:BYTE,inFile:BYTE,outFile:BYTE,fl:BYTE,iNum:WORD
 
-UDATASEG
+       UDATASEG
+
 EXTRN ifSpec:BYTE,ofSpec:BYTE
 
        END

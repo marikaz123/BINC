@@ -1,8 +1,7 @@
 -----------------------------------------------------------------------------
-         ***  BINC ver. 2.5  ***
+    ***  BINC ver. 2.7 ***
                                                            (c)1995 'marikaz'
 -----------------------------------------------------------------------------
-MOD2509
 
 
 1. DZIALANIE
@@ -15,9 +14,12 @@ MOD2509
 
    1.1 Skladnia:
 
-   BINC.EXE <InFileSpec> [OutFileSpec] [{/B | /D | /H}] [/I=nn] [/N[:][name]]
+   BINC.EXE <InFileSpec> [OutFileSpec] \
+            [{/B[B] | /D | /H}]        \
+            [/I=nn] [/N[:][name]]      \
 
      /B          Generuj wartosci dwojkowe.
+     /BB         Wartosci binarne otrzymuja komplet 8 cyfr i b na koncu.
      /D          Generuj wartosci dziesietne.
      /H          Generuj wartosci szestnastkowe (domyslnie).
      /I=nn       Ilosc pozycji w linii, nn=1..16 (domyslnie 16).
@@ -29,58 +31,54 @@ MOD2509
    Jesli nie podano nazwy dla pliku docelowego (OutFileSpec) to zostanie
    wygenerowany plik o nazwie identycznej z nazwa pliku wejsciowego
    a rozszerzenie zostanie zastapione rozszerzeniem inc.
-   Jesli plik wejsciowy rozszerzenia nie posiadal to program je doda.
 
    1.2 Uzycie
 
-       Zgodnie ze skladnia:
-
-       BINC.EXE [dive:][path]<Infile>
-                [drive:][path][OutFile]
-                [{/B | /D | /H}]
-                [I=nn]
-                [/N[:][nazwa]]
-
-         Np.:
-
-         BINC.EXE c:\test\plik.bin d:\inc\plikinc.db /n:tablica /i=10 /d
+       Np.:
+       BINC.EXE c:\test\plik.bin d:\inc\plik.inc /n:tablica /i=8 /bb
 
        - BINC rozpoznaje przeznaczenie plikow po kolejnosci ich wystepowania
          w linii polecen. Pierwsza napotkana nazwa pliku bedzie traktowana
          jako nazwa pliku zrodlowego.
+       - Jezeli plik docelowy ma znalezc sie w innej lokalizacji niz
+         biezaca, to oprocz sciezki, nalezy podac nazwe dla tego pliku.
        - Opcja /H (hex) jest domyslna i nie jest wymagana, wystepuje tylko
          dla porzadku.
+       - Opcja /BB powoduje, ze rozwiniecie binarne otrzymuje komplet
+         8 cyfr oraz b na koncu. Np. 0 = 00000000b itd.
        - Opcja /I=nn zapisuje nn pozycji w wierszu.
-         Ze wzgledu na pewne uproszczenia dla i=9, 11 i 13, przy duzych
-         plikach niektore linie beda mialy mniejsza niz I liczbe pozycji.
+         Ze wzgledu na pewne uproszczenia dla I=9, 11 i 13, niektore linie
+         beda mialy mniejsza liczbe pozycji.
        - Opcja /N:nazwa dodaje nazwe dla tablicy, max. 15 znakow. Jesli
          podano /N bez nazwy, to tablica otrzyma nazwe pliku wejsciowego
          bez rozszerzenia.
+         Uwaga! Niektore znaki dopuszczalne w nazwach plikow beda niepoprawne
+         w nazwach zmiennych.
 
 2. PLIK WYJSCIOWY
 
    Kazda linia sklada sie z nn pozycji i zaczyna sie od dyrektywy DB.
-   Kazda pozycja zawiera jeden bajt dwojkowo, dziesietnie lub szestnastkowo
-   w ASCII, z tym, ze:
+   Kazda pozycja jest rozdzielona przecinkiem i zawiera jeden bajt dwojkowo,
+   dziesietnie lub szestnastkowo w ASCII, z tym, ze:
    W przeciwienstwie do innych tego typu programow, BINC nie zapisuje do
    generowanej tablicy nadmiarowych znakow:
    - Cyfry szestnastkowe 0..9 nie wymagaja zadnych dodatkowych znakow.
    - Liczby szestnastkowe zaczynajace sie od cyfry dziesietnej nie wymagaja
      poprzedzajacego zera,
    - cyfry i liczby dziesietne nie maja zadnych dodatkowych znakow,
-   - a binarne 0 i 1 bez konczacego 'b'  (!)Uwagi dotyczace kompilacji
+   - a binarne 0 i 1 bez konczacego 'b'.
 
 3. BLEDY I KOMUNIKATY
+
+   - W przypadku bledow skladni albo przypadkowego znaku w linii polecen
+     lub gdy podano /?, program wyswietla info dotyczace uzycia.
+     Uwaga! Przypadkowy znak (znaki) w linii polecen w sprzyjajacych
+     okolicznosciach moze zostac uznany za nazwe dla pliku docelowego.
 
    - W przypadku bledow podczas operacji na plikach, program wyswietli
      komunikat:
 
       > Blad operacji na pliku.
-
-   - W przypadku gdy w linii polecen nie podano nazwy pliku do konwersji,
-     podano bledna nazwe lub niezgodna z MS-DOS, wprowadzono polecenia
-     niezgodne ze skladnia lub podano: /?
-     program wyswietla info z poprawnym uzyciem.
 
    - Gdy plik zrodlowy ma 0 bajtow:
 
@@ -90,39 +88,27 @@ MOD2509
 
       > Plik docelowy istnieje juz w podanej lokalizacji. Nadpisac (t/n)?
 
-     Wybor nalezy zatwierdzic klawiszem ENTER.
-
-     Przerwanie procesu przez uzytkownika komunikowane jest napisem:
+     Przerwanie procesu przez uzytkownika (wybrano n) komunikowane jest
+     napisem:
 
       > Zapis przerwano.
 
    - Prawidlowy przebieg programu wraz z wygenerowaniem pliku docelowego
      zostanie zakomunikowane napisem:
 
-      > Plik <filename[.ext]> zapisano w podanej lokalizacji.
+      > Plik <nazwa> zapisano w podanej lokalizacji.
 
 4. UWAGI DOTYCZACE KOMPILACJI ZE ZRODEL
 
    - W kodzie zrodlowym wystepuja linie odwolujace sie do makr zawartych
-     w pliku 'ifileio.mac', ktorego nie ma w repozytorium. Makra wykonuja
-     standardowe operacje na plikach. Nazwy sa jednoznaczne i nie powinno
-     byc problemu z napisaniem wlasnych lub zastapienie bezposrednio kodem.
+     w pliku 'fileio.mac', ktorego nie ma w repozytorium. Makra wykonuja
+     standardowe operacje na plikach.
+     Nazwy sa jednoznaczne i mozna zastapic bezposrednio kodem.
 
    - W 'main.asm' wystepuje wywolanie procedury ChoiceBpl, ktora znajduje
      sie w zewnetrznej bibliotece i nie ma jej w repozytorium. Funkcja
      zwraca NC dla znakow 't','T' lub CY dla 'n','N', natomiast inne
-     klawisze ignoruje. Procedure mozna zastapic doslownie kilkoma liniami
-     kodu.
-
-   - Plik 'b2d.asm' zawierajacy mechanizm konwertujacy, mozna skomilowac
-     z flagami:
-
-     /dDDEC - liczby dziesietne (ale nie _cyfry_) otrzymaja 'd' na koncu.
-              Domyslnie liczby dziesietne nie zawieraja zadnych dodatkowych
-              znakow.
-     /dALLZ - rozwiniecie binarne otrzyma komplet 8 cyfr nawet gdy tego
-              nie wymaga. Wszystkie wartosci otrzymaja 'b' na koncu.
-              Np.: 0 = 00000000b, 1 = 00000001b itd.
+     klawisze ignoruje. Mozna zastapic kilkoma liniami kodu.
 
 
 5. KOMPATYBILNOSC

@@ -1,11 +1,14 @@
 ;----------------------------------------------------------------------------
-; * Bin2db:PROC * REV. E1 *                                        BINC v2.5
+; * Bin2db:PROC * REV. F1 *                                        BINC v2.x
 ;----------------------------------------------------------------------------
+
+INCLUDE INC\header.inc
 
         IDEAL
         MODEL SMALL
 
-CODESEG
+        CODESEG
+
 EXTRN vProc:WORD
 PUBLIC Bin2db
 PUBLIC @B2HASC,@B2DASC,@B2BASC
@@ -13,8 +16,8 @@ PUBLIC @B2HASC,@B2DASC,@B2BASC
 PROC    Bin2db
         LOCALS
         ;-----------------------------------
-        ;  we: dgroup:si=wsk. na buf. zr.
-        ;      dgroup:di=wsk. na buf. cel
+        ;  we: dgroup:si=wsk. do buf. zr.  |
+        ;      dgroup:di=wsk. do buf. cel
         ;      cx= bajtow w buf. zr.
         ;  wy: cx= bajtow w buf. cel
         ;-----------------------------------
@@ -63,7 +66,7 @@ nxByte:
         pop bx ax
         ret
         ENDP
-        ;---
+
 PROC    @B2HASC
         LOCALS
         cmp al,0fh  ;dla 1 cyfry hex
@@ -122,7 +125,7 @@ PROC    @B2DASC
         ja @@a9
         add al,30h
         stosb
-        jmp @@rt
+        jmp @@exip
   @@a9:
         cmp al,99
         ja @@a99
@@ -142,44 +145,38 @@ PROC    @B2DASC
         add ax,3030h
         stosw
 @@exip:
-        IFDEF DDEC      ;liczby dziesietne z 'd'
-         mov al,'d'
-         stosb
-        ENDIF
-  @@rt:
         pop dx bx
         ret
         ENDP
 
 PROC    @B2BASC
         LOCALS
-        IFNDEF ALLZ
-         cmp al,0
-         jne @@1
-         add al,30h
-         stosb
-         ret
-    @@1:
-         cmp al,1
-         jne @@a1
-         add al,30h
-         stosb
-         ret
+        test [mode],MASK allz
+        jnz @@a1
+        cmp al,0
+        jne @@1
+        add al,30h
+        stosb
+        ret
+   @@1:
+        cmp al,1
+        jne @@a1
+        add al,30h
+        stosb
+        ret
    @@a1:
-        ENDIF
         push cx
         mov ah,al
         mov cx,8
-
-        IFNDEF ALLZ
-   @@h0:
-         shl ah,1
-         jc @@b1
-         loop @@h0 ;pomin nieznaczace zera
-         mov al,'0'
-         stosb
-         jmp @@ex
-        ENDIF
+        test [mode],MASK allz
+        jnz @@nx
+  @@h0:
+        shl ah,1
+        jc @@b1
+        loop @@h0 ;pomin nieznaczace zera
+        mov al,'0'
+        stosb
+        jmp @@ex
   @@nx:
         shl ah,1
         jnc @@b0
@@ -199,7 +196,8 @@ PROC    @B2BASC
         ret
         ENDP
 
-DATASEG
-EXTRN aLabel:BYTE,iNum:WORD
+        DATASEG
+
+EXTRN aLabel:BYTE,iNum:WORD,mode:FLAGS
 
         END
