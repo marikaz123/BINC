@@ -1,26 +1,24 @@
 ;----------------------------------------------------------------------------
-; * Bin2db:PROC * REV. F1 *                                        BINC v2.x
+; BINC.Bin2db:PROC * REV. F *
 ;----------------------------------------------------------------------------
 
-INCLUDE INC\header.inc
+INCLUDE .\INC\binc_h.inc
 
         IDEAL
         MODEL SMALL
 
         CODESEG
 
-EXTRN vProc:WORD
+EXTRN  vProc:WORD
 PUBLIC Bin2db
-PUBLIC @B2HASC,@B2DASC,@B2BASC
 
 PROC    Bin2db
         LOCALS
-        ;-----------------------------------
-        ;  we: dgroup:si=wsk. do buf. zr.  |
-        ;      dgroup:di=wsk. do buf. cel
-        ;      cx= bajtow w buf. zr.
-        ;  wy: cx= bajtow w buf. cel
-        ;-----------------------------------
+        ;-----------------------------+
+        ;  we: si=buf. zr.            |
+        ;      di=buf. cel
+        ;      cx=bajtow w buf. zr.
+        ;  wy: cx=bajtow w buf. cel
         push ax bx di
         cmp [aLabel],0
         je newLine
@@ -28,10 +26,10 @@ PROC    Bin2db
         lea si,[aLabel]
   @@cp:
         cmp [BYTE si],0
-        je @@ex
+        je @@sp
         movsb
         jmp @@cp
-  @@ex:
+  @@sp:
         mov al,20h
         stosb
         mov [aLabel],0 ;tylko za 1 razem
@@ -54,7 +52,7 @@ nxByte:
         jnz nxByte
 @@eos:
         dec di ;nadpisz ostatni przecinek w linii
-        mov ax,0A0Dh
+        mov ax,0a0dh
         stosw
         or cx,cx
         jnz newLine
@@ -91,7 +89,7 @@ PROC    @B2HASC
         inc di
  @@sl0:
         push cx
-        mov cx,2  ;2 obiegi
+        mov cx,2
         mov ah,al
         and ax,0f00fh
         shr ah,4
@@ -101,7 +99,7 @@ PROC    @B2HASC
         ja @@a92
         add al,30h
         stosb
-        xchg al,ah ;1 cyfra w al
+        xchg al,ah
         loop @@sd
         jmp @@exip
  @@a92:
@@ -176,7 +174,7 @@ PROC    @B2BASC
         loop @@h0 ;pomin nieznaczace zera
         mov al,'0'
         stosb
-        jmp @@ex
+        jmp @@exip
   @@nx:
         shl ah,1
         jnc @@b0
@@ -184,12 +182,12 @@ PROC    @B2BASC
         mov al,'1'
         stosb
         loop @@nx
-        jmp @@ex
+        jmp @@exip
   @@b0:
         mov al,'0'
         stosb
         loop @@nx
-  @@ex:
+@@exip:
         mov al,'b'
         stosb
         pop cx

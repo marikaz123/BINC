@@ -1,12 +1,12 @@
-; -- BINC v2.x --
-INCLUDE ..\..\_MAC\fileio.mac
-FLAGS RECORD allz:1,bdh:1,itm:1
+;binc_h
 
+INCLUDE ..\..\_MAC\fileio.mac
+GLOBAL  @B2DASC:NEAR,@B2BASC:NEAR,@B2HASC:NEAR
+FLAGS RECORD allz:1,bdh:1,itm:1
 IBS = 1680          ;dla i=9, 11, 13 nierowno
 OBS = IBS/16*224+16 ;244b max. rozmiar tablicy dla 16 bajtow zrodla przy
-                    ;parametrach /b8 /i=1
+                    ;parametrach /bb /i=1
                     ;plus (16b) dlugosc nazwy tablicy + spacja
-
 IFEMPTY MACRO
         LOCAL @ex
         push es

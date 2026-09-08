@@ -1,307 +1,299 @@
 COMMENT #--------------------------------------------------------------------
-GetParams:PROC * REV. F * BINC v2.x
+BINC.GetParams:PROC * REV. G *
 -----------------------------------------------------------------------------
-linia:
-       [{/B[B] | /D | /H}] [/i=nn] [/N[:][name]]
-       [drive:][path]<InFile>
-       [dirve:][path][OutFile]
+linia polecen:
+    [{/B[B] | /D | /H}] [/i=nn] [/N[:][name]]
+    [drv:][path]<InFile> [drv:][path][OutFile]
 ----------------------------------------------------------------------------#
 
-INCLUDE INC\header.inc
+INCLUDE .\INC\binc_h.inc
 
-       IDEAL
-       MODEL SMALL
+        IDEAL
+        MODEL SMALL
 
-       CODESEG
+        CODESEG
 
-EXTRN @B2DASC:NEAR,@B2BASC:NEAR
 EXTRN vProc:WORD
 PUBLIC GetParams
 JUMPS
 
-PROC   GetParams
-       LOCALS
-       push es
-       mov ax,DGROUP
-       mov es,ax
-       mov [es:ifSpec],0 ;  tu znacznik
-       mov [es:ofSpec],0 ; /
-       mov si,80h
-       cmp [BYTE si],0
-       je @@exi0  ;exit 0 = info
-       inc si
+PROC    GetParams
+        LOCALS
+        mov si,80h
+        cmp [BYTE si],2 ;?
+        jb @@exi1 ;info
+        cld
+        inc si
 gChar:
-       lodsb
-       cmp al,9
-       je gChar
-       cmp al,20h
-       je gChar
-       cmp al,0dh
-       je @@exip  ;jedyne mozliwe wyjscie bez bledu!
-       cmp al,20h
-       jb @@exi0  ;info
+        lodsb
+        cmp al,9
+        je gChar
+        cmp al,20h
+        je gChar
+        cmp al,0dh
+        je endParam
+        cmp al,'/'
+        je switch
+        cmp al,'-'
+        je switch
+        cmp al,20h
+        jb @@exi1
 
-       cmp al,'/'
-       je switch
-       lea di,[es:ifSpec]
-       lea bx,[es:inFile]
-       or [BYTE es:di],0 ;jest juz inFile
-       jnz @@f2 ;sprawdz outSpec
-       dec si
-       call @GFS
-       jc @@exi0
-       jmp gChar
+        test [es:ifSpec],0fh
+        jnz @@f2
+        lea di,[es:ifSpec]
+        dec si ;cofnij si po lodsb
+        call Loc_gfs
+        jc @@exi2
+        jmp gChar
 @@f2:
-       lea di,[es:ofSpec]
-       lea bx,[es:outFile]
-       or [BYTE es:di],0 ;juz jest outFile
-       jnz @@exi0
-       dec si ;wyrownaj
-       call @GFS
-       jc @@exi0
-       jmp gChar
+        test [es:ofSpec],0fh
+        jnz @@exi1
+        lea di,[es:ofSpec]
+        dec si
+        call Loc_gfs
+        jc @@exi2
+        jmp gChar
 
 switch:
-       lodsb
-       or al,20h
-       cmp al,'n'
-       je caseN
-       cmp al,'h'
-       je caseH
-       cmp al,'d'
-       je caseD
-       cmp al,'i'
-       je caseI
-       cmp al,'b'
-       je caseB
-       jmp @@exi0
-;--------------------------------/ n /
-caseN:
-       lea di,[es:aLabel]
-       cmp [BYTE es:di],0
-       jne @@exi0
-       mov [BYTE es:di],1 ;samo /n
-       mov cx,15 +1
-       cmp [BYTE si],':'
-       jne gLab
-       inc si
-gLab:
-       cmp [BYTE si],20h
-       jbe gChar
-       movsb
-       loop gLab
-       jmp @@exi0 ;blad
-;--------------------------------/ d /
-caseD:
-       test [es:mode],MASK bdh
-       jnz @@exi0
-       or [es:mode],MASK bdh
-       lea ax,[NEAR @B2DASC]
-       mov [vProc],ax
-       cmp [BYTE si],20h
-       ja @@exi0
-       jmp gChar
-;--------------------------------/ h /
-caseH:
-       test [es:mode],MASK bdh
-       jnz @@exi0
-       or [es:mode],MASK bdh
-       cmp [BYTE si],20h
-       ja @@exi0
-       jmp gChar
-;--------------------------------/ b /
+        lodsb
+        or al,20h
+        cmp al,'b'
+        je caseB
+        cmp al,'d'
+        je caseD
+        cmp al,'h'
+        je caseH
+        cmp al,'i'
+        je caseI
+        cmp al,'n'
+        je caseN
+        jmp @@exi1
+
 caseB:
-       test [es:mode],MASK bdh
-       jnz @@exi0
-       or [es:mode],MASK bdh
-       cmp [BYTE si],20h
-       jbe @@s
-       lodsb
-       or al,20h
-       cmp al,'b'
-       jne @@exi0
-       or [es:mode],MASK allz
-  @@s:
-       lea ax,[NEAR @B2BASC]
-       mov [vProc],ax
-       cmp [BYTE si],20h
-       ja @@exi0
-       jmp gChar
-;--------------------------------/ i /
+        test [es:mode],MASK bdh
+        jnz @@exi1
+        or [es:mode],MASK bdh
+        cmp [BYTE si],20h
+        jbe @@b
+        lodsb
+        or al,20h
+        cmp al,'b'
+        jne @@exi1
+        or [es:mode],MASK allz
+  @@b:
+        lea ax,[NEAR @B2BASC]
+        mov [vProc],ax
+        cmp [BYTE si],20h
+        ja @@exi1
+        jmp gChar
+
+caseD:
+        test [es:mode],MASK bdh
+        jnz @@exi1
+        or [es:mode],MASK bdh
+        lea ax,[NEAR @B2DASC]
+        mov [vProc],ax
+        cmp [BYTE si],20h
+        ja @@exi1
+        jmp gChar
+
+caseH:
+        test [es:mode],MASK bdh
+        jnz @@exi1
+        or [es:mode],MASK bdh
+        cmp [BYTE si],20h
+        ja @@exi1
+        jmp gChar
+
 caseI:
-       test [es:mode],MASK itm
-       jnz @@exi0
-       or [es:mode],MASK itm
-       lodsb
-       cmp al,'=' ;obowiazkowy
-       jne @@exi0
+        test [es:mode],MASK itm
+        jnz @@exi1
+        or [es:mode],MASK itm
+        lodsb
+        cmp al,'=' ;obowiazkowy
+        jne @@exi1
 
-       lodsb
-       cmp al,'0'
-       jb @@exi0
-       cmp al,'9'
-       ja @@exi0
-       sub al,'0'
-       mov ah,al
-       ;---
-       cmp [BYTE si],20h
-       jbe @@eoi
-       lodsb
-       cmp al,'0'
-       jb @@exi0
-       cmp al,'9'
-       ja @@exi0
-       sub al,'0'
-       ;---
-       push bx
-       shl ah,1
-       mov bl,ah
-       shl ah,2
-       add ah,bl
-       pop bx
-       add al,ah
-       cmp [BYTE si],20h
-       ja @@exi0
-@@eoi:
-       cbw
-       cmp ax,1
-       jb @@exi0
-       cmp ax,16
-       ja @@exi0
-       mov [es:iNum],ax
-       jmp gChar
+        lodsb
+        cmp al,'0'
+        jb @@exi1
+        cmp al,'9'
+        ja @@exi1
+        sub al,'0'
+        mov ah,al
+        cmp [BYTE si],20h
+        jbe @@i
+        lodsb
+        cmp al,'0'
+        jb @@exi1
+        cmp al,'9'
+        ja @@exi1
+        sub al,'0'
+        push bx
+        shl ah,1
+        mov bl,ah
+        shl ah,2
+        add ah,bl
+        pop bx
+        add al,ah
+        cmp [BYTE si],20h
+        ja @@exi1
+   @@i:
+        cbw
+        cmp ax,1
+        jb @@exi1
+        cmp ax,16
+        ja @@exi1
+        mov [es:iNum],ax
+        jmp gChar
 
-@@exi0:
-       pop es
-       stc
-       ret
+caseN:
+        lea di,[es:aLabel]
+        cmp [BYTE es:di],0
+        jne @@exi1
+        mov [BYTE es:di],1 ;samo /n
+        mov cx,15 +1
+        cmp [BYTE si],':'
+        jne @@n
+        inc si
+   @@n:
+        cmp [BYTE si],20h
+        jbe gChar
+        movsb
+        loop @@n
+        jmp @@exi1 ;blad
 
-@@exip:
-       cmp [es:inFile],0
-       je @@exi0 ;inFile
-       call @ALAB
-       call @OUTF
-       pop es
-       clc
-       ret
-       ENDP
+endParam:   ;es=ds=dataseg
+        push es
+        pop ds  ;
+        cmp [ifSpec],0
+        je @@exi1
+        cmp [ofSpec],0
+        jne @@1
+        lea si,[ifSpec]
+        lea di,[ofSpec]
+        call Loc_cfs
+   @@1:
+        mov ah,60h
+        lea si,[ifSpec]
+        mov di,si
+        int 21h
+        jc @@exi2
+        mov ah,60h
+        lea si,[ofSpec]
+        mov di,si
+        int 21h
+        jc @@exi2
+        lea di,[ofName] ;si na miejscu?
+        call Loc_cfn
+        jc @@exi2
+        cmp [aLabel],1
+        jne @@2
 
-PROC   @GFS ;ds:si src, es:di dst, es:bx name.dst, cy error
-       LOCALS
-       push dx bp
-       mov dx,di ;tymczas
-       mov bp,bx ; /
-       mov cx,63 +1
- @@l1:
-       cmp [BYTE si],20h
-       jbe rWrite
-       movsb
-       loop @@l1
-       jmp @@er
-rWrite:
-       mov [BYTE es:di],0  ;*
-       mov cx,12 +1
- @@l2:
-       dec di ;ostatni znak w f.spec
-       cmp [BYTE es:di],'\'
-       je swByte
-       cmp di,dx
-       jb swByte
-       mov al,[es:di]
-       mov [es:bx],al
-       inc bx
-       loop @@l2
-       jmp @@er
-swByte:
-       dec bx ;wsk na ostatnia lit.
-       mov di,bp
- @@l3:
-       cmp di,bx
-       jae @@rt
-       mov al,[es:bx]
-       mov ah,[es:di]
-       mov [es:di],al
-       mov [es:bx],ah
-       inc di
-       dec bx
-       jmp @@l3
+        lea si,[ofName]
+        lea di,[aLabel]
+        call Loc_lfn
+   @@2:
+        xor ax,ax
+        ret  ;wyjscie bez bledow
+
+@@exi1:
+        mov ax,1 ;blad linii polecen
+        stc
+        ret
+
+@@exi2:
+        mov ax,2 ;blad w nazawch sciezek i/lub plikow
+        stc
+        ret
+        ENDP
+;----------------------------------------------------------------------------
+PROC    Loc_gfs ;cs:si -> string, es:di -> filespec
+        LOCALS
+        cmp [BYTE si],20h
+        jbe @@ex
+        cmp [BYTE si],7eh
+        ja @@er
+        movsb
+        jmp Loc_gfs
+  @@er:
+        stc
+        ret
+  @@ex:
+        clc
+        ret
+        ENDP
+
+PROC    Loc_cfs
+        LOCALS
+        cmp [BYTE si],0
+        je @@ae
+        cmp [BYTE si],'.'
+        je @@ae
+        movsb
+        jmp Loc_cfs
+  @@ae:
+        mov ax,'I.'
+        stosw
+        mov ax,'CN'
+        stosw
+        mov [BYTE di],0
+        ret
+        ENDP
+
+PROC    Loc_cfn
+        LOCALS
+        push di
+        mov di,si
+        xor al,al
+        mov cx,80
+        repne scasb
+        jcxz @@er
+        neg cx
+        add cx,80
+        mov al,'\'
+        std
+        repne scasb
+        add cx,2 ;proteza po scasb
+        add si,cx
+        pop di
+        cld
+  @@cp:
+        cmp [BYTE si],0
+        je @@ex
+        movsb
+        jmp @@cp
 @@er:
-       pop bp dx
-       stc
-       ret
-@@rt:
-       pop bp dx
-       clc
-       ret
-       ENDP
+        stc
+        ret
+@@ex:
+        clc
+        ret
+        ENDP
 
-PROC   @ALAB ;0 nie ma /n, 1 jest /n, >1 jest /n:nazwa
-       LOCALS
-       cmp [es:aLabel],1
-       jne @@ex
-       lea si,[es:inFile]
-       lea di,[es:aLabel]
- @@l1:
-       cmp [BYTE es:si],'.'
-       je @@ex
-       cmp [BYTE es:si],0
-       je @@ex
-       mov al,[es:si]
-       mov [es:di],al
-       inc si
-       inc di
-       jmp @@l1
- @@ex:
-       ret
-       ENDP
+PROC    Loc_lfn ;si -> ofName, di -> aLabel
+        LOCALS
+        cmp [BYTE si],0
+        je @@ex
+        cmp [BYTE si],'.'
+        je @@ex
+        lodsb
+        cmp al,'A'
+        jb @@s
+        cmp al,'Z'
+        ja @@s
+        or al,20h
+   @@s:
+        stosb
+        jmp Loc_lfn
+@@ex:
+        ret
+        ENDP
 
-PROC   @OUTF
-       LOCALS
-       lea si,[es:inFile]
-       lea di,[es:ofSpec]
-       lea bx,[es:outFile]
-       cmp [BYTE es:di],0
-       jne @@exip
-       mov cx,8 +1
- @@rw:
-       cmp [BYTE es:si],'.'
-       je @@aext
-       cmp [BYTE es:si],0
-       je @@aext
-       mov al,[es:si]
-       mov [es:di],al
-       mov [es:bx],al
-       inc si
-       inc di
-       inc bx
-       loop @@rw
-       stc
-       ret
-@@aext:
-       mov ax,'i.'
-       mov [es:di],ax
-       mov [es:bx],ax
-       add di,2
-       add bx,2
-       mov ax,'cn'
-       mov [es:di],ax
-       mov [es:bx],ax
-       add di,2
-       add bx,2
-       mov [BYTE es:di],0
-       mov [BYTE es:bx],0
-@@exip:
-       clc
-       ret
-       ENDP
-
-       DATASEG
+        DATASEG
 
 EXTRN mode:FLAGS
-EXTRN aLabel:BYTE,inFile:BYTE,outFile:BYTE,fl:BYTE,iNum:WORD
+EXTRN iNum:WORD
+EXTRN ifSpec:BYTE,ofSpec:BYTE,ofName:BYTE,aLabel:BYTE
 
-       UDATASEG
-
-EXTRN ifSpec:BYTE,ofSpec:BYTE
-
-       END
+        END

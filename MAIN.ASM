@@ -1,19 +1,11 @@
 ;===========================================================================;
-; BINC v2.7 ** MOD2602                                    (c)1995 'marikaz' ;
+; BINC v2.8 ** MOD2608                                    (c)1995 'marikaz' ;
 ; ------------------------------------------------------------------------- ;
-; Konwertuj plik binarny do pliku, ktory mozna dolaczyc do kodu zrodlowego  ;
-; w asemblerze.                                                             ;
-;                                                                           ;
-; Skladnia:                                                                 ;
-;                                                                           ;
-; BINC.EXE  <InFileSpec> [OutFileSpec] \      -pliki we/wy                  ;
-;           [{/B[B] | /D | /H}]        \      -reprezentacja wartosci       ;
-;           [/N[:][name]]              \      -nazwa tabl.                  ;
-;           [/I=nn]                    \      -ilosc pozycji                ;
-;                                                                           ;
+; Konwertuj plik na tablice dla assemblera.                                 ;
 ;===========================================================================;
 
-INCLUDE INC\header.inc
+INCLUDE .\INC\binc_h.inc
+BSIZEW = (LENGTH ofName+LENGTH aLabel+LENGTH ifSpec+LENGTH ofSpec)/2
 
         IDEAL
         MODEL SMALL
@@ -22,23 +14,26 @@ INCLUDE INC\header.inc
 
 EXTRN GetParams:PROC,Bin2db:PROC
 EXTRN ChoiceBpl:PROC  ;choicex.lib
-EXTRN @B2HASC:NEAR
 PUBLIC vProc
 
         JUMPS
 
 PROC    Main
-        call GetParams
-        mov ax,DGROUP
-        mov ds,ax
+        mov ax,@DATA
         mov es,ax
-        jc infMsg     ;CY, wyswietl info.
-        mov si,OFFSET inFile
-        mov di,OFFSET outFile
-        mov cx,12
+        xor ax,ax
+        lea di,[es:buffers]
+        mov cx,BSIZEW
+        rep stosw
+        call GetParams
+        push es
+        pop ds
+        jc infMsg
+        mov si,OFFSET ifSpec
+        mov di,OFFSET ofSpec
+        mov cx,80 ;caly bufor
         repe cmpsb
-        or cx,cx
-        jz fnErr ;nazwy plikow nie moga byc idenyczne
+        jcxz fnErr
         FFIND ifSpec
         jc infMsg
         IFEMPTY
@@ -49,38 +44,41 @@ PROC    Main
         mov si,OFFSET ynMsg
         call @Puts
         call ChoiceBpl
-        jc break ;CY=odp.nie
+        jc break
 
 openFiles:
+        call @QCurPos
         FOPEN ifSpec,RE
-        jc ioErr
-        mov [hTmp],ax
+        jc ioErr      ;
+        mov [hFile],ax
         FCREATE ofSpec
         jc ioErr
         mov bx,ax
         mov si,OFFSET wMsg
         call @Puts
         FWRITE hdr,HDRLEN ;dodaj info do pliku docelowego
+
 do:
         lea si,[inBuf]
         lea di,[outBuf]
-        xchg bx,[hTmp]    ;bx=hInFile
+        xchg bx,[hFile]    ;bx=hInFile
         FREAD inBuf,IBS
         or ax,ax
-        jz closeFiles
+        jz done
         mov cx,ax
         call Bin2db ;ret: cx=ilosc bajtow w buforze
-        xchg bx,[hTmp] ;bx= hOutFlile
+        xchg bx,[hFile] ;bx= hOutFlile
         FWRITE outBuf
         jmp do
 
-closeFiles:
+done:
         FCLOSE
-        xchg bx,[hTmp]
+        xchg bx,[hFile]
         FCLOSE
+        call @SCurPos
         mov si,OFFSET okMsg
         call @Puts
-        mov si,OFFSET outFile
+        mov si,OFFSET ofName
         call @Puts
         mov si,OFFSET okMsg2
         mov al,0
@@ -91,7 +89,7 @@ exit:
         int 21h
 break:
         mov si,OFFSET brkMsg
-        mov al,3
+        mov al,1
         jmp exit
 ioErr:
         mov si,OFFSET ioMsg
@@ -99,17 +97,23 @@ ioErr:
         jmp exit
 emErr:
         mov si,OFFSET empMsg
-        mov al,2
+        mov al,1
         jmp exit
 fnErr:
         mov si,OFFSET fnMsg
-        mov al,4
+        mov al,1
         jmp exit
 infMsg:
+        test ax,2
+        je inf
+        mov si,OFFSET icMsg
+        mov al,1
+        jmp exit
+inf:
         mov dx,OFFSET info
         mov ah,9h
         int 21h
-        mov al,-1
+        mov al,1
         jmp exit+3 ;pomin call
         ENDP
 
@@ -129,34 +133,62 @@ PROC    @Puts
         ret
         ENDP
 
+PROC    @SCurPos
+        mov ah,2
+        mov bh,0
+        mov dx,[cPos]
+        int 10h
+        ret
+        ENDP
+
+PROC    @QCurPos
+        push bx
+        mov ah,3
+        mov bh,0
+        int 10h
+        mov [cPos],dx
+        pop bx
+        ret
+        ENDP
+
 vProc   DW @B2HASC ;domyslnie hex
 
         DATASEG
 
-PUBLIC aLabel,inFile,outFile,iNum,mode
-mode    FLAGS <0,0,0> ;allz,bdh,itm
-hTmp    DW ?
-iNum    DW 16
-aLabel  DB 15 DUP(0),0
-inFile  DB 12 DUP(0),0
-outFile DB 12 DUP(0),0
-
-ioMsg   DB 'Blad podczas operacji na pliku.',13,10,0
-empMsg  DB 'Plik zrodlowy jest pusty.',13,10,0
-fnMsg   DB 'Nazwa pliku zrodlowego nie moze byc nazwa dla pliku docelowego.',13,10,0
-ynMsg   DB 'Plik docelowy juz istnieje w podanej lokalizacji. Nadpisac [t/n]? ',0
-brkMsg  DB 'Zapis przerwano.',13,10,0
-okMsg   DB "plik ",0
-okMsg2  DB " zostal zapisany w wybranej lokalizacji.",13,10,0
-wMsg    DB 'Czekaj... ',0
-
-INCLUDE '.\INC\imsg.inc'
-
-        UDATASEG
-
+PUBLIC aLabel,ofName,iNum,mode
 PUBLIC ifSpec,ofSpec,inBuf,outBuf
-ifSpec  DB  64 DUP(?)
-ofSpec  DB  64 DUP(?)
+
+iNum   DW 16
+mode   FLAGS <0,0,0> ;allz,bdh,itm
+
+ioMsg  DB 'Blad i/o podczas operacji na pliku.',13,10,0
+icMsg  DB 'Nieprawidlowy znak w sciezce lub nazwie pliku.',13,10,0
+empMsg DB 'Plik zrodlowy jest pusty.',13,10,0
+fnMsg  DB 'Dla plikow w tej samej lokalizacji, nazwa pliku zrodlowego '
+       DB 'nie moze byc nazwa',13,10
+       DB 'dla pliku docelowego.',13,10,0
+ynMsg  DB 'Plik docelowy juz istnieje w danej lokalizacji. Nadpisac [t/n]? ',0
+brkMsg DB 'Zapis przerwano.',13,10,0
+okMsg  DB 'Plik ',0
+okMsg2 DB ' zostal zapisany w wybranej lokalizacji.',13,10,0
+wMsg   DB 'Czekaj...',0
+
+       INCLUDE '.\INC\imsg.inc'
+
+IFDEF ADDVER
+ DB 'Version 2.8.0.2608'
+ENDIF
+
+EVENDATA
+hFile   DW ?
+cPos    DW ?
+
+LABEL   buffers
+ofName  DB  14 DUP(?)
+aLabel  DB  16 DUP(?)
+ifSpec  DB 128 DUP(?)
+ofSpec  DB 128 DUP(?)
+
 inBuf   DB IBS DUP(?)
 outBuf  DB OBS DUP(?)
 
