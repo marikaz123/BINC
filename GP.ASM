@@ -20,7 +20,7 @@ JUMPS
 PROC    GetParams
         LOCALS
         mov si,80h
-        cmp [BYTE si],2 ;?
+        cmp [BYTE si],2
         jb @@exi1 ;info
         cld
         inc si
@@ -168,17 +168,17 @@ endParam:   ;es=ds=dataseg
         pop ds  ;
         cmp [ifSpec],0
         je @@exi1
+        mov ah,60h
+        lea si,[ifSpec]
+        mov di,si
+        int 21h
+        jc @@exi2                
         cmp [ofSpec],0
         jne @@1
         lea si,[ifSpec]
         lea di,[ofSpec]
         call Loc_cfs
    @@1:
-        mov ah,60h
-        lea si,[ifSpec]
-        mov di,si
-        int 21h
-        jc @@exi2
         mov ah,60h
         lea si,[ofSpec]
         mov di,si
