@@ -1,11 +1,10 @@
 ;===========================================================================;
-; BINC v2.8 ** MOD2608                                    (c)1995 'marikaz' ;
+; BINC v2.8.1 ** MOD2611                                  (c)1995 'marikaz' ;
 ; ------------------------------------------------------------------------- ;
 ; Konwertuj plik na tablice dla assemblera.                                 ;
 ;===========================================================================;
 
 INCLUDE .\INC\binc_h.inc
-BSIZEW = (LENGTH ofName+LENGTH aLabel+LENGTH ifSpec+LENGTH ofSpec)/2
 
         IDEAL
         MODEL SMALL
@@ -176,7 +175,7 @@ wMsg   DB 'Czekaj...',0
        INCLUDE '.\INC\imsg.inc'
 
 IFDEF ADDVER
- DB 'Version 2.8.0.2608'
+ DB VER
 ENDIF
 
 EVENDATA

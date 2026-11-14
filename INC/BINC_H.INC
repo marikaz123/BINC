@@ -1,8 +1,9 @@
 ;binc_h
-
+VER EQU 'Version 2.8.1.2611'
 INCLUDE ..\..\_MAC\fileio.mac
 GLOBAL  @B2DASC:NEAR,@B2BASC:NEAR,@B2HASC:NEAR
 FLAGS RECORD allz:1,bdh:1,itm:1
+BSIZEW = (LENGTH ofName+LENGTH aLabel+LENGTH ifSpec+LENGTH ofSpec)/2
 IBS = 1680          ;dla i=9, 11, 13 nierowno
 OBS = IBS/16*224+16 ;244b max. rozmiar tablicy dla 16 bajtow zrodla przy
                     ;parametrach /bb /i=1
